@@ -2,10 +2,10 @@ import yaml
 from pbjson.pbjson import pb2dict
 from pbjson.pbjson import dict2pb
 
-import orwell.messages.controller_pb2 as pb_controller
-import orwell.messages.robot_pb2 as pb_robot
-import orwell.messages.server_game_pb2 as pb_server_game
-import orwell.messages.server_web_pb2 as pb_server_web
+import orwell.messages.controller_pb2
+import orwell.messages.robot_pb2
+import orwell.messages.server_game_pb2
+import orwell.messages.server_web_pb2
 
 from . import messages
 
@@ -97,35 +97,112 @@ class Base(object):
 #map(gen, inspect.getmembers(pb_server_game, inspect.isclass))
 #map(gen, inspect.getmembers(pb_server_web, inspect.isclass))
 # ]]]
-# [[[end]]]
-
-class Hello(yaml.YAMLObject, Base):
-    __metaclass__ = CustomMetaClass
-    PROTOBUF_CLASS = pb_controller.Hello
-    yaml_tag = u'!Hello'
-
-
-class Move(yaml.YAMLObject, Base):
-    __metaclass__ = CustomMetaClass
-    PROTOBUF_CLASS = pb_controller.Move
-    yaml_tag = u'!Move'
-
 
 class Fire(yaml.YAMLObject, Base):
-    __metaclass__ = CustomMetaClass
-    PROTOBUF_CLASS = pb_controller.Fire
-    yaml_tag = u'!Fire'
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.controller_pb2.Fire
+   yaml_tag = u'!Fire'
+
+
+class Hello(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.controller_pb2.Hello
+   yaml_tag = u'!Hello'
 
 
 class Input(yaml.YAMLObject, Base):
-    __metaclass__ = CustomMetaClass
-    PROTOBUF_CLASS = pb_controller.Input
-    yaml_tag = u'!Input'
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.controller_pb2.Input
+   yaml_tag = u'!Input'
+
+
+class Move(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.controller_pb2.Move
+   yaml_tag = u'!Move'
+
+
+class Colour(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.robot_pb2.Colour
+   yaml_tag = u'!Colour'
+
+
+class Register(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.robot_pb2.Register
+   yaml_tag = u'!Register'
+
+
+class Rfid(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.robot_pb2.Rfid
+   yaml_tag = u'!Rfid'
 
 
 class ServerRobotState(yaml.YAMLObject, Base):
-    __metaclass__ = CustomMetaClass
-    PROTOBUF_CLASS = pb_robot.ServerRobotState
-    yaml_tag = u'!ServerRobotState'
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.robot_pb2.ServerRobotState
+   yaml_tag = u'!ServerRobotState'
 
 
+class Access(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Access
+   yaml_tag = u'!Access'
+
+
+class GameState(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.GameState
+   yaml_tag = u'!GameState'
+
+
+class Goodbye(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Goodbye
+   yaml_tag = u'!Goodbye'
+
+
+class Registered(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Registered
+   yaml_tag = u'!Registered'
+
+
+class Start(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Start
+   yaml_tag = u'!Start'
+
+
+class Stop(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Stop
+   yaml_tag = u'!Stop'
+
+
+class Team(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Team
+   yaml_tag = u'!Team'
+
+
+class Welcome(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Welcome
+   yaml_tag = u'!Welcome'
+
+
+class GetAccess(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.server_web_pb2.GetAccess
+   yaml_tag = u'!GetAccess'
+
+
+class GetGameState(yaml.YAMLObject, Base):
+   __metaclass__ = CustomMetaClass
+   PROTOBUF_CLASS = orwell.messages.server_web_pb2.GetGameState
+   yaml_tag = u'!GetGameState'
+
+# [[[end]]]
