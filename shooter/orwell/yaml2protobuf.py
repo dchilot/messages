@@ -3,6 +3,9 @@ from pbjson.pbjson import pb2dict
 from pbjson.pbjson import dict2pb
 
 import orwell.messages.controller_pb2 as pb_controller
+import orwell.messages.robot_pb2 as pb_robot
+import orwell.messages.server_game_pb2 as pb_server_game
+import orwell.messages.server_web_pb2 as pb_server_web
 
 from . import messages
 
@@ -66,14 +69,63 @@ class Base(object):
             )
 
 
+# [[[cog
+#import cog
+#
+#import inspect
+#
+#import orwell.messages.controller_pb2 as pb_controller
+#import orwell.messages.robot_pb2 as pb_robot
+#import orwell.messages.server_game_pb2 as pb_server_game
+#import orwell.messages.server_web_pb2 as pb_server_web
+#
+#TEMPLATE = """
+#class {name}(yaml.YAMLObject, Base):
+#   __metaclass__ = CustomMetaClass
+#   PROTOBUF_CLASS = {module}.{name}
+#   yaml_tag = u'!{name}'
+#"""
+#
+#def gen(class_description):
+#   name, klass = class_description
+#   module = klass.__module__
+#   cog.outl(TEMPLATE.format(name=name, module=module))
+#
+#
+#map(gen, inspect.getmembers(pb_controller, inspect.isclass))
+#map(gen, inspect.getmembers(pb_robot, inspect.isclass))
+#map(gen, inspect.getmembers(pb_server_game, inspect.isclass))
+#map(gen, inspect.getmembers(pb_server_web, inspect.isclass))
+# ]]]
+# [[[end]]]
+
 class Hello(yaml.YAMLObject, Base):
     __metaclass__ = CustomMetaClass
     PROTOBUF_CLASS = pb_controller.Hello
     yaml_tag = u'!Hello'
 
 
+class Move(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = pb_controller.Move
+    yaml_tag = u'!Move'
+
+
+class Fire(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = pb_controller.Fire
+    yaml_tag = u'!Fire'
+
+
 class Input(yaml.YAMLObject, Base):
     __metaclass__ = CustomMetaClass
     PROTOBUF_CLASS = pb_controller.Input
     yaml_tag = u'!Input'
+
+
+class ServerRobotState(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = pb_robot.ServerRobotState
+    yaml_tag = u'!ServerRobotState'
+
 

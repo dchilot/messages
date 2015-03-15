@@ -13,6 +13,7 @@ from pbjson.pbjson import dict2pb
 
 class MainTest(unittest.TestCase):
     def test_1(self):
+        """Simple test with default value."""
         name = "Test"
         yaml_content = """
 message: !Hello
@@ -29,6 +30,7 @@ message: !Hello
         assert(message2.ready)
 
     def test_2(self):
+        """Simple test with default value overriden."""
         name = "Test"
         ready = False
         yaml_content = """
@@ -47,6 +49,7 @@ message: !Hello
         assert(message2.ready == ready)
 
     def test_3(self):
+        """Play with the underlying library (not really a test)."""
         message = pb_controller.Hello()
         name = "JAMBON"
         message.name = name
@@ -66,6 +69,7 @@ message: !Hello
         assert(message2.fire.weapon2)
         
     def test_4(self):
+        """Nested message."""
         message = pb_controller.Input()
         message.move.left = 0.2
         message.move.right = -0.5
@@ -92,3 +96,23 @@ message: !Input
         assert_equal(message.fire.weapon1, message2.protobuf_message.fire.weapon1)
         assert_equal(message.fire.weapon2, message2.protobuf_message.fire.weapon2)
 
+    def test_5(self):
+        """Use the inline notation (json like)"""
+        message = pb_controller.Input()
+        message.move.left = 0.2
+        message.move.right = -0.5
+        message.fire.weapon1 = False
+        message.fire.weapon2 = True
+        yaml_content = """
+message: !Input {{ "message": {{ "move": {{ "left": {left}, "right": {right} }},
+"fire": {{ "weapon1": {weapon1}, "weapon2": {weapon2} }} }} }}""".format(
+            left=message.move.left,
+            right=message.move.right,
+            weapon1=message.fire.weapon1,
+            weapon2=message.fire.weapon2)
+        data = yaml.load(yaml_content)
+        message2 = data["message"]
+        assert_equal(message.move.left, message2.protobuf_message.move.left)
+        assert_equal(message.move.right, message2.protobuf_message.move.right)
+        assert_equal(message.fire.weapon1, message2.protobuf_message.fire.weapon1)
+        assert_equal(message.fire.weapon2, message2.protobuf_message.fire.weapon2)
