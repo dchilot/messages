@@ -34,7 +34,10 @@ message Register {
 	// this temporary robot ID is only used when registering because
 	// we do not know yet what ID the server will assign to the robot
 	required string temporary_robot_id = 1;
+	// a valid url the is streaming as mjpeg what the robot sees
 	required string video_url = 2;
+	// an image of the robot to be able to identify it with image
+	// analysis (when available ...)
 	required string image = 3;
 }
 
