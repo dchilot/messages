@@ -167,6 +167,48 @@ class Capture(object):
         self.captured.append(captured)
         return differences
 
+    def fill(self, dico):
+        expanded_dico = {}
+        stack = [(self.message, expanded_dico, self.PROTOBUF_CLASS.DESCRIPTOR)]
+        while (stack):
+            current_dico, current_expanded_dico, current_descriptor = \
+                stack.pop();
+            for key, value in current_dico.items():
+                if (isinstance(value, dict)):
+                    current_expanded_dico[key] = {}
+                    descriptor = current_descriptor.fields_by_name[key]
+                    stack.append((value, current_expanded_dico[key], descriptor))
+                else:
+                    descriptor = current_descriptor.message_type.fields_by_name[key]
+                    #for field in current_descriptor.fields:
+                        #if (field.name == key):
+                            #descriptor = field
+                            #break
+                    if (isinstance(value, str)):
+                        value = value.format(**dico)
+                    if (descriptor.type in
+                            (pb_descriptor.FieldDescriptor.TYPE_DOUBLE,
+                             pb_descriptor.FieldDescriptor.TYPE_FLOAT)):
+                        value = float(value)
+                    elif (descriptor.type in
+                            (pb_descriptor.FieldDescriptor.TYPE_INT32,
+                             pb_descriptor.FieldDescriptor.TYPE_SINT32,
+                             pb_descriptor.FieldDescriptor.TYPE_UINT32,
+                             pb_descriptor.FieldDescriptor.TYPE_FIXED32,
+                             pb_descriptor.FieldDescriptor.TYPE_SFIXED32,
+                             pb_descriptor.FieldDescriptor.TYPE_INT64,
+                             pb_descriptor.FieldDescriptor.TYPE_SINT64,
+                             pb_descriptor.FieldDescriptor.TYPE_UINT64,
+                             pb_descriptor.FieldDescriptor.TYPE_FIXED64,
+                             pb_descriptor.FieldDescriptor.TYPE_SFIXED64,
+                             pb_descriptor.FieldDescriptor.TYPE_ENUM)):
+                        value = int(value)
+                    elif (pb_descriptor.FieldDescriptor.TYPE_BOOL
+                            == descriptor.type):
+                        value = bool(value)
+                    current_expanded_dico[key] = value
+        return dict2pb(self.PROTOBUF_CLASS, expanded_dico)
+
 
 # [[[cog
 #import cog
@@ -185,6 +227,7 @@ class Capture(object):
 #
 #
 #class Capture{name}(yaml.YAMLObject, Capture):
+#   PROTOBUF_CLASS = {module}.{name}
 #   yaml_tag = u'!Capture{name}'
 #
 #"""
@@ -210,6 +253,7 @@ class Fire(yaml.YAMLObject, Base):
 
 
 class CaptureFire(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.controller_pb2.Fire
    yaml_tag = u'!CaptureFire'
 
 
@@ -220,6 +264,7 @@ class Hello(yaml.YAMLObject, Base):
 
 
 class CaptureHello(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.controller_pb2.Hello
    yaml_tag = u'!CaptureHello'
 
 
@@ -230,6 +275,7 @@ class Input(yaml.YAMLObject, Base):
 
 
 class CaptureInput(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.controller_pb2.Input
    yaml_tag = u'!CaptureInput'
 
 
@@ -240,6 +286,7 @@ class Move(yaml.YAMLObject, Base):
 
 
 class CaptureMove(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.controller_pb2.Move
    yaml_tag = u'!CaptureMove'
 
 
@@ -250,6 +297,7 @@ class Colour(yaml.YAMLObject, Base):
 
 
 class CaptureColour(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.robot_pb2.Colour
    yaml_tag = u'!CaptureColour'
 
 
@@ -260,6 +308,7 @@ class Register(yaml.YAMLObject, Base):
 
 
 class CaptureRegister(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.robot_pb2.Register
    yaml_tag = u'!CaptureRegister'
 
 
@@ -270,6 +319,7 @@ class Rfid(yaml.YAMLObject, Base):
 
 
 class CaptureRfid(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.robot_pb2.Rfid
    yaml_tag = u'!CaptureRfid'
 
 
@@ -280,6 +330,7 @@ class ServerRobotState(yaml.YAMLObject, Base):
 
 
 class CaptureServerRobotState(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.robot_pb2.ServerRobotState
    yaml_tag = u'!CaptureServerRobotState'
 
 
@@ -290,6 +341,7 @@ class Access(yaml.YAMLObject, Base):
 
 
 class CaptureAccess(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Access
    yaml_tag = u'!CaptureAccess'
 
 
@@ -300,6 +352,7 @@ class GameState(yaml.YAMLObject, Base):
 
 
 class CaptureGameState(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.GameState
    yaml_tag = u'!CaptureGameState'
 
 
@@ -310,6 +363,7 @@ class Goodbye(yaml.YAMLObject, Base):
 
 
 class CaptureGoodbye(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Goodbye
    yaml_tag = u'!CaptureGoodbye'
 
 
@@ -320,6 +374,7 @@ class Registered(yaml.YAMLObject, Base):
 
 
 class CaptureRegistered(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Registered
    yaml_tag = u'!CaptureRegistered'
 
 
@@ -330,6 +385,7 @@ class Start(yaml.YAMLObject, Base):
 
 
 class CaptureStart(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Start
    yaml_tag = u'!CaptureStart'
 
 
@@ -340,6 +396,7 @@ class Stop(yaml.YAMLObject, Base):
 
 
 class CaptureStop(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Stop
    yaml_tag = u'!CaptureStop'
 
 
@@ -350,6 +407,7 @@ class Team(yaml.YAMLObject, Base):
 
 
 class CaptureTeam(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Team
    yaml_tag = u'!CaptureTeam'
 
 
@@ -360,6 +418,7 @@ class Welcome(yaml.YAMLObject, Base):
 
 
 class CaptureWelcome(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Welcome
    yaml_tag = u'!CaptureWelcome'
 
 
@@ -370,6 +429,7 @@ class GetAccess(yaml.YAMLObject, Base):
 
 
 class CaptureGetAccess(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.server_web_pb2.GetAccess
    yaml_tag = u'!CaptureGetAccess'
 
 
@@ -380,6 +440,7 @@ class GetGameState(yaml.YAMLObject, Base):
 
 
 class CaptureGetGameState(yaml.YAMLObject, Capture):
+   PROTOBUF_CLASS = orwell.messages.server_web_pb2.GetGameState
    yaml_tag = u'!CaptureGetGameState'
 
 

@@ -200,6 +200,12 @@ message: !CaptureInput
             [('@destination', 'TEST1', None), ('/move/left', 0.2, 1.0)],
             diffs)
         sys.stderr.write(str(message1.captured) + "\n")
+        assert_equal([{'right': -0.5}], message1.captured)
+        pb_message = message1.fill(message1.captured[-1])
+        sys.stderr.write('filled:' + str(pb_message) + "\n")
+        message2.protobuf_message.move.left = 0.2
+        assert_equal(str(pb_message), str(message2.protobuf_message))
+        assert_equal(pb_message, message2.protobuf_message)
 
 def main():
     MainTest.test_key_map()
