@@ -146,6 +146,8 @@ class Capture(object):
                     first = False
         return self._key_map
 
+    def __getitem__(self, index):
+        return self.captured[index]
 
     def compute_differences(self, other):
         differences = []
