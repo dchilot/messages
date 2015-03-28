@@ -13,10 +13,12 @@ class MainTest(unittest.TestCase):
         import sys
         yaml_content = """
 messages:
-    - hello: !Hello &hello
+    - hello: !CaptureHello &hello
+        destination: TEST1
         message:
             name: Player
     - welcome: !CaptureWelcome &welcome
+        destination: "{id}"
         message:
             robot: Nono
             team: 1
@@ -48,8 +50,8 @@ threads:
                 arguments:
                     id: '123'
     - !Thread
-        in_socket: *push_a
-        out_socket: *pull_b
+        in_socket: *pull_b
+        out_socket: *push_a
         flow:
             - !Out
                 message: *hello
@@ -64,6 +66,12 @@ threads:
 """
         scenario = scen.Scenario(yaml_content)
         sys.stderr.write("\n" + str(scenario._data) + "\n")
+        scenario.build()
+        scenario.step()
+        scenario.step()
+        scenario.step()
+        scenario.step()
+        scenario.step()
 
 
 def main():

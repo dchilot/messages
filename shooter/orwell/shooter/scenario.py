@@ -34,10 +34,17 @@ class SocketPull(yaml.YAMLObject, Socket):
     yaml_tag = u'!SocketPull'
     zmq_method = zmq.PULL
 
+    def recv(self, *args, **kwargs):
+        return self._zmq_socket.recv(*args, **kwargs)
+
 
 class SocketPush(yaml.YAMLObject, Socket):
     yaml_tag = u'!SocketPush'
     zmq_method = zmq.PUSH
+
+    def send(self, *args, **kwargs):
+        print("SocketPush.send(%s, %s)" % (str(*args), str(**kwargs)))
+        self._zmq_socket.send(*args, **kwargs)
 
 
 class ExchangeMetaClass(type):
@@ -69,9 +76,13 @@ class ExchangeMetaClass(type):
 
 class Exchange(object):
     def __repr__(self):
-        return "{message: %s ; arguments: %s}" % (
+        return "{%s | message: %s ; arguments: %s}" % (
+            self.yaml_tag,
             str(self.message.yaml_tag),
             str(self.arguments))
+
+    #def build(self, zmq_method):
+        #pass
 
 
 class In(yaml.YAMLObject, Exchange):
@@ -79,21 +90,26 @@ class In(yaml.YAMLObject, Exchange):
     yaml_tag = u'!In'
 
     def step(self, in_socket, out_socket):
-        """Not finished."""
+        print("In.step")
         try:
-            message = in_socket.recv(zmq.NOBLOCK)
+            zmq_message = in_socket.recv(zmq.NOBLOCK)
         except:
-            message = None
-        if (message):
+            zmq_message = None
+        if (zmq_message):
+            print("received zmq message %s" % repr(zmq_message))
+            message = yaml2protobuf.Capture.create_from_zmq(zmq_message)
             self.message.compute_differences(message)
+        return zmq_message, zmq_message is not None
 
 class Out(yaml.YAMLObject, Exchange):
     __metaclass__ = ExchangeMetaClass
     yaml_tag = u'!Out'
+    arguments = {}
 
     def step(self, in_socket, out_socket):
-        """Not finished."""
-        out_socket.send(self.message.pb_message)
+        print("Out.step")
+        out_socket.send(self.message.get_zmq_message(self.arguments))
+        return None, True
 
 
 class Capture(yaml.YAMLObject):
@@ -112,8 +128,8 @@ class Capture(yaml.YAMLObject):
 class Equal(yaml.YAMLObject):
     yaml_tag = u'!Equal'
 
-    def build(self, zmq_context):
-        pass
+    #def build(self, zmq_context):
+        #pass
 
     def step(value, *args):
         """Not finished."""
@@ -128,17 +144,19 @@ class Thread(yaml.YAMLObject):
     yaml_tag = u'!Thread'
 
     def build(self, zmq_context):
-        for dico in flow:
-            assert(len(dico.keys()) == 1)
-            key = dico.keys()[0]
-            step = dico.values()[0]
-            step.build(zmq_context)
+        self.in_socket.build(zmq_context)
+        self.out_socket.build(zmq_context)
+        #for step in self.flow:
+            #step.build(zmq_context)
 
     def step(self):
         if (not hasattr(self, "index")):
             self.index = 0
         if (self.index < len(self.flow)):
-            result, inc = self.flow[index].step()
+            result, inc = self.flow[self.index].step(
+                self.in_socket, self.out_socket)
+            if (inc):
+                self.index = (self.index + 1) % len(self.flow)
 
     def __repr__(self):
         return "{Thread | in_socket = %s ; out_socket = %s ; flow = %s}" % (
@@ -154,6 +172,10 @@ class Scenario(object):
         self._messages = self._data["messages"]
         self._zmq_context = zmq.Context()
         self._threads = self._data["threads"]
+
+    def build(self):
+        for thread in self._threads:
+            thread.build(self._zmq_context)
 
     def step(self):
         for thread in self._threads:

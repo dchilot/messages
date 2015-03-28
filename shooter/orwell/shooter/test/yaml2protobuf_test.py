@@ -19,7 +19,7 @@ class MainTest(unittest.TestCase):
         """Simple test with default value."""
         name = "Test"
         yaml_content = """
-message: !Hello
+message: !CaptureHello
     message:
         name: {name}
 """.format(name=name)
@@ -37,7 +37,7 @@ message: !Hello
         name = "Test"
         ready = False
         yaml_content = """
-message: !Hello
+message: !CaptureHello
     message:
         name: {name}
         ready: {ready}
@@ -79,7 +79,7 @@ message: !Hello
         message.fire.weapon1 = False
         message.fire.weapon2 = True
         yaml_content = """
-message: !Input
+message: !CaptureInput
     message:
         move:
             left: {left}
@@ -107,7 +107,7 @@ message: !Input
         message.fire.weapon1 = False
         message.fire.weapon2 = True
         yaml_content = """
-message: !Input {{ "message": {{ "move": {{ "left": {left}, "right": {right} }},
+message: !CaptureInput {{ "message": {{ "move": {{ "left": {left}, "right": {right} }},
 "fire": {{ "weapon1": {weapon1}, "weapon2": {weapon2} }} }} }}""".format(
             left=message.move.left,
             right=message.move.right,

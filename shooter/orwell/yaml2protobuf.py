@@ -1,4 +1,5 @@
 import re
+import sys
 
 import yaml
 from pbjson.pbjson import pb2dict
@@ -110,13 +111,47 @@ class Base(object):
 class Capture(object):
     def __new__(cls, *args, **kwargs):
         instance = object.__new__(cls, *args, **kwargs)
+        if (not hasattr(instance, 'arguments')):
+            setattr(instance, 'arguments', {})
         setattr(instance, 'captured', [])
+        setattr(instance, '_pb_message', None)
         # !CaptureMessage -> !Message
         setattr(
             instance,
             'captured_yaml_tag',
             instance.yaml_tag.replace('!Capture', '!'))
         return instance
+
+    @staticmethod
+    def create_from_zmq(zmq_message):
+        destination, message_type, payload = zmq_message.split(' ', 3)
+        found = False
+        for module in (
+                orwell.messages.controller_pb2,
+                orwell.messages.robot_pb2,
+                orwell.messages.server_game_pb2,
+                orwell.messages.server_web_pb2):
+            if (hasattr(module, message_type)):
+                pb_klass = getattr(module, message_type)
+                found = True
+                break
+        if (not found):
+            raise Exception("Invalid message type: " + message_type)
+        pb_message = pb_klass()
+        pb_message.ParseFromString(payload)
+        klass = getattr(sys.modules[__name__], "Capture" + message_type)
+        capture = klass()
+        capture._pb_message = pb_message
+        capture.destination = destination
+        capture.message = pb2dict(pb_message)
+        return capture
+
+    @property
+    def protobuf_message(self):
+        if (self._pb_message is None):
+            self._pb_message = self.fill(self.arguments)
+            #self._pb_message = dict2pb(self.PROTOBUF_CLASS, self.message)
+        return self._pb_message
 
     @property
     def key_map(self):
@@ -146,8 +181,38 @@ class Capture(object):
                     first = False
         return self._key_map
 
+    @property
+    def zmq_message(self):
+        return " ".join((
+            self.destination,
+            self.PROTOBUF_CLASS.DESCRIPTOR.name,
+            self.protobuf_message.SerializeToString())) 
+
+    def get_zmq_message(self, dico):
+        if (('{' == self.destination[0]) and ('}' == self.destination[-1])):
+            destination = self.destination.format(**dico)
+        else:
+            destination = self.destination
+        return " ".join((
+            destination,
+            self.PROTOBUF_CLASS.DESCRIPTOR.name,
+            self.fill(dico).SerializeToString())) 
+
     def __getitem__(self, index):
         return self.captured[index]
+
+    def __getattribute__(self, attribute):
+        if (hasattr(self, "message")):
+            message = object.__getattribute__(self, "message")
+            if ("message" == attribute):
+                return message
+            else:
+                if (attribute in message):
+                    return message[attribute]
+                else:
+                    return object.__getattribute__(self, attribute)
+        else:
+            return object.__getattribute__(self, attribute)
 
     def compute_differences(self, other):
         differences = []
@@ -171,17 +236,21 @@ class Capture(object):
 
     def fill(self, dico):
         expanded_dico = {}
+        sys.stderr.write("++ self.message %s\n" % (self.message))
         stack = [(self.message, expanded_dico, self.PROTOBUF_CLASS.DESCRIPTOR)]
         while (stack):
             current_dico, current_expanded_dico, current_descriptor = \
                 stack.pop();
             for key, value in current_dico.items():
-                if (isinstance(value, dict)):
-                    current_expanded_dico[key] = {}
+                sys.stderr.write("-- key=%s;value=%s ; %s\n" % (key, value, current_descriptor))
+                if (isinstance(current_descriptor, pb_descriptor.Descriptor)):
                     descriptor = current_descriptor.fields_by_name[key]
-                    stack.append((value, current_expanded_dico[key], descriptor))
                 else:
                     descriptor = current_descriptor.message_type.fields_by_name[key]
+                if (isinstance(value, dict)):
+                    current_expanded_dico[key] = {}
+                    stack.append((value, current_expanded_dico[key], descriptor))
+                else:
                     #for field in current_descriptor.fields:
                         #if (field.name == key):
                             #descriptor = field
