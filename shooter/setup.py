@@ -20,7 +20,8 @@ setuptools.setup(
     author_email='',
     packages=setuptools.find_packages(exclude="test"),
     test_suite='nose.collector',
-    install_requires=['pyzmq', 'cliff'],
+    install_requires=['pyzmq', 'pyaml', 'cliff', 'simplejson', 'six',
+                      'pyparsing', 'stevedore', 'pbr', 'protobuf'],
     tests_require=['nose', 'coverage'],
     entry_points={
         'console_scripts': [
