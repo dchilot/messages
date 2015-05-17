@@ -1,5 +1,6 @@
 import re
 import sys
+import inspect
 
 import yaml
 from pbjson.pbjson import pb2dict
@@ -11,8 +12,6 @@ import orwell.messages.server_game_pb2
 import orwell.messages.server_web_pb2
 
 import google.protobuf.descriptor as pb_descriptor
-
-from . import messages
 
 
 # adapted from http://stackoverflow.com/a/12144823/3552528
@@ -218,7 +217,8 @@ class Capture(object):
         differences = []
         captured = {}
         if (self.captured_yaml_tag != other.yaml_tag):
-            differences.append(("@name", self.captured_yaml_tag, other.yaml_tag))
+            differences.append(
+                ("@name", self.captured_yaml_tag, other.yaml_tag))
         if (self.destination != other.destination):
             differences.append(
                 ("@destination", self.destination, other.destination))
@@ -240,16 +240,19 @@ class Capture(object):
         stack = [(self.message, expanded_dico, self.PROTOBUF_CLASS.DESCRIPTOR)]
         while (stack):
             current_dico, current_expanded_dico, current_descriptor = \
-                stack.pop();
+                stack.pop()
             for key, value in current_dico.items():
-                sys.stderr.write("-- key=%s;value=%s ; %s\n" % (key, value, current_descriptor))
+                sys.stderr.write("-- key={0};value={1} ; {2}\n".format(
+                    key, value, current_descriptor))
                 if (isinstance(current_descriptor, pb_descriptor.Descriptor)):
                     descriptor = current_descriptor.fields_by_name[key]
                 else:
-                    descriptor = current_descriptor.message_type.fields_by_name[key]
+                    descriptor = current_descriptor\
+                        .message_type.fields_by_name[key]
                 if (isinstance(value, dict)):
                     current_expanded_dico[key] = {}
-                    stack.append((value, current_expanded_dico[key], descriptor))
+                    stack.append(
+                        (value, current_expanded_dico[key], descriptor))
                 else:
                     #for field in current_descriptor.fields:
                         #if (field.name == key):
@@ -281,238 +284,276 @@ class Capture(object):
         return dict2pb(self.PROTOBUF_CLASS, expanded_dico)
 
 
-# [[[cog
-#import cog
-#
-#import inspect
-#
-#import orwell.messages.controller_pb2 as pb_controller
-#import orwell.messages.robot_pb2 as pb_robot
-#import orwell.messages.server_game_pb2 as pb_server_game
-#import orwell.messages.server_web_pb2 as pb_server_web
-#
-#TEMPLATE = """class {name}(yaml.YAMLObject, Base):
-#   __metaclass__ = CustomMetaClass
-#   PROTOBUF_CLASS = {module}.{name}
-#   yaml_tag = u'!{name}'
-#
-#
-#class Capture{name}(yaml.YAMLObject, Capture):
-#   PROTOBUF_CLASS = {module}.{name}
-#   yaml_tag = u'!Capture{name}'
-#
-#"""
-#
-#def gen(class_description):
-#   name, klass = class_description
-#   module = klass.__module__
-#   cog.outl(TEMPLATE.format(name=name, module=module))
-#
-#
-#cog.outl("\n")
-#map(gen, inspect.getmembers(pb_controller, inspect.isclass))
-#map(gen, inspect.getmembers(pb_robot, inspect.isclass))
-#map(gen, inspect.getmembers(pb_server_game, inspect.isclass))
-#map(gen, inspect.getmembers(pb_server_web, inspect.isclass))
-# ]]]
+def get_classes_from_class_or_module(module_or_class, level, nesting=None):
+    """ Extract module and name of classes.
+    There is a special case for nested classes as the name of the parent class
+    has to be added manually.
+    Working with nested classes is not a good idea in the end as pbjson does
+    not handle nested messages.
+    """
+    if (nesting is None):
+        nesting = []
+    classes_and_modules = []
+    class_descriptions = inspect.getmembers(module_or_class, inspect.isclass)
+    for class_description in class_descriptions:
+        name, klass = class_description
+        if (not name.startswith('_')):
+            module = klass.__module__
+            if (nesting):
+                module += "." + ".".join(nesting)
+            classes_and_modules.append((name, module))
+            if (level > 0):
+                nesting.append(name)
+                classes_and_modules.extend(get_classes_from_class_or_module(
+                    klass, level - 1, nesting))
+                nesting.pop()
+    return classes_and_modules
+
+
+def generate():
+    import orwell.messages.controller_pb2 as pb_controller
+    import orwell.messages.robot_pb2 as pb_robot
+    import orwell.messages.server_game_pb2 as pb_server_game
+    import orwell.messages.server_web_pb2 as pb_server_web
+
+    TEMPLATE = """
+class {name}(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = {module}.{name}
+    yaml_tag = u'!{name}'
+
+
+class Capture{name}(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = {module}.{name}
+    yaml_tag = u'!Capture{name}'
+
+"""
+    output = ""
+
+    output += "\n"
+    array = get_classes_from_class_or_module(pb_controller, 1)
+    array += get_classes_from_class_or_module(pb_robot, 1)
+    array += get_classes_from_class_or_module(pb_server_game, 1)
+    array += get_classes_from_class_or_module(pb_server_web, 1)
+    for class_name, module_name in array:
+        output += TEMPLATE.format(name=class_name, module=module_name)
+    return output
+
+
+# use to generator the code with cog
+COG_GENERATOR = """ [[[cog
+import os
+import sys
+import inspect
+full_path = os.path.abspath(inspect.getfile(inspect.currentframe()))
+plus_index = full_path.rfind('+')
+real_path = full_path[:plus_index]
+print('exec(%s)' % real_path)
+exec(open(real_path, 'r'))
+import cog
+cog.outl(generate())
+# ]]] """
 
 
 class Fire(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.controller_pb2.Fire
-   yaml_tag = u'!Fire'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.controller_pb2.Fire
+    yaml_tag = u'!Fire'
 
 
 class CaptureFire(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.controller_pb2.Fire
-   yaml_tag = u'!CaptureFire'
+    PROTOBUF_CLASS = orwell.messages.controller_pb2.Fire
+    yaml_tag = u'!CaptureFire'
 
 
 class Hello(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.controller_pb2.Hello
-   yaml_tag = u'!Hello'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.controller_pb2.Hello
+    yaml_tag = u'!Hello'
 
 
 class CaptureHello(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.controller_pb2.Hello
-   yaml_tag = u'!CaptureHello'
+    PROTOBUF_CLASS = orwell.messages.controller_pb2.Hello
+    yaml_tag = u'!CaptureHello'
 
 
 class Input(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.controller_pb2.Input
-   yaml_tag = u'!Input'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.controller_pb2.Input
+    yaml_tag = u'!Input'
 
 
 class CaptureInput(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.controller_pb2.Input
-   yaml_tag = u'!CaptureInput'
+    PROTOBUF_CLASS = orwell.messages.controller_pb2.Input
+    yaml_tag = u'!CaptureInput'
 
 
 class Move(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.controller_pb2.Move
-   yaml_tag = u'!Move'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.controller_pb2.Move
+    yaml_tag = u'!Move'
 
 
 class CaptureMove(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.controller_pb2.Move
-   yaml_tag = u'!CaptureMove'
+    PROTOBUF_CLASS = orwell.messages.controller_pb2.Move
+    yaml_tag = u'!CaptureMove'
 
 
 class Colour(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.robot_pb2.Colour
-   yaml_tag = u'!Colour'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.robot_pb2.Colour
+    yaml_tag = u'!Colour'
 
 
 class CaptureColour(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.robot_pb2.Colour
-   yaml_tag = u'!CaptureColour'
+    PROTOBUF_CLASS = orwell.messages.robot_pb2.Colour
+    yaml_tag = u'!CaptureColour'
 
 
 class Register(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.robot_pb2.Register
-   yaml_tag = u'!Register'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.robot_pb2.Register
+    yaml_tag = u'!Register'
 
 
 class CaptureRegister(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.robot_pb2.Register
-   yaml_tag = u'!CaptureRegister'
+    PROTOBUF_CLASS = orwell.messages.robot_pb2.Register
+    yaml_tag = u'!CaptureRegister'
 
 
 class Rfid(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.robot_pb2.Rfid
-   yaml_tag = u'!Rfid'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.robot_pb2.Rfid
+    yaml_tag = u'!Rfid'
 
 
 class CaptureRfid(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.robot_pb2.Rfid
-   yaml_tag = u'!CaptureRfid'
+    PROTOBUF_CLASS = orwell.messages.robot_pb2.Rfid
+    yaml_tag = u'!CaptureRfid'
 
 
 class ServerRobotState(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.robot_pb2.ServerRobotState
-   yaml_tag = u'!ServerRobotState'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.robot_pb2.ServerRobotState
+    yaml_tag = u'!ServerRobotState'
 
 
 class CaptureServerRobotState(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.robot_pb2.ServerRobotState
-   yaml_tag = u'!CaptureServerRobotState'
+    PROTOBUF_CLASS = orwell.messages.robot_pb2.ServerRobotState
+    yaml_tag = u'!CaptureServerRobotState'
 
 
 class Access(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Access
-   yaml_tag = u'!Access'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Access
+    yaml_tag = u'!Access'
 
 
 class CaptureAccess(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Access
-   yaml_tag = u'!CaptureAccess'
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Access
+    yaml_tag = u'!CaptureAccess'
 
 
 class GameState(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.GameState
-   yaml_tag = u'!GameState'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.GameState
+    yaml_tag = u'!GameState'
 
 
 class CaptureGameState(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.GameState
-   yaml_tag = u'!CaptureGameState'
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.GameState
+    yaml_tag = u'!CaptureGameState'
 
 
 class Goodbye(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Goodbye
-   yaml_tag = u'!Goodbye'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Goodbye
+    yaml_tag = u'!Goodbye'
 
 
 class CaptureGoodbye(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Goodbye
-   yaml_tag = u'!CaptureGoodbye'
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Goodbye
+    yaml_tag = u'!CaptureGoodbye'
 
 
 class Registered(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Registered
-   yaml_tag = u'!Registered'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Registered
+    yaml_tag = u'!Registered'
 
 
 class CaptureRegistered(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Registered
-   yaml_tag = u'!CaptureRegistered'
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Registered
+    yaml_tag = u'!CaptureRegistered'
 
 
 class Start(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Start
-   yaml_tag = u'!Start'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Start
+    yaml_tag = u'!Start'
 
 
 class CaptureStart(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Start
-   yaml_tag = u'!CaptureStart'
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Start
+    yaml_tag = u'!CaptureStart'
 
 
 class Stop(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Stop
-   yaml_tag = u'!Stop'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Stop
+    yaml_tag = u'!Stop'
 
 
 class CaptureStop(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Stop
-   yaml_tag = u'!CaptureStop'
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Stop
+    yaml_tag = u'!CaptureStop'
 
 
 class Team(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Team
-   yaml_tag = u'!Team'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Team
+    yaml_tag = u'!Team'
 
 
 class CaptureTeam(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Team
-   yaml_tag = u'!CaptureTeam'
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Team
+    yaml_tag = u'!CaptureTeam'
 
 
 class Welcome(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Welcome
-   yaml_tag = u'!Welcome'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Welcome
+    yaml_tag = u'!Welcome'
 
 
 class CaptureWelcome(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.server_game_pb2.Welcome
-   yaml_tag = u'!CaptureWelcome'
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Welcome
+    yaml_tag = u'!CaptureWelcome'
 
 
 class GetAccess(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.server_web_pb2.GetAccess
-   yaml_tag = u'!GetAccess'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_web_pb2.GetAccess
+    yaml_tag = u'!GetAccess'
 
 
 class CaptureGetAccess(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.server_web_pb2.GetAccess
-   yaml_tag = u'!CaptureGetAccess'
+    PROTOBUF_CLASS = orwell.messages.server_web_pb2.GetAccess
+    yaml_tag = u'!CaptureGetAccess'
 
 
 class GetGameState(yaml.YAMLObject, Base):
-   __metaclass__ = CustomMetaClass
-   PROTOBUF_CLASS = orwell.messages.server_web_pb2.GetGameState
-   yaml_tag = u'!GetGameState'
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_web_pb2.GetGameState
+    yaml_tag = u'!GetGameState'
 
 
 class CaptureGetGameState(yaml.YAMLObject, Capture):
-   PROTOBUF_CLASS = orwell.messages.server_web_pb2.GetGameState
-   yaml_tag = u'!CaptureGetGameState'
+    PROTOBUF_CLASS = orwell.messages.server_web_pb2.GetGameState
+    yaml_tag = u'!CaptureGetGameState'
 
 
 # [[[end]]]
+
+if ("__main__" == __name__):
+    print(generate())
