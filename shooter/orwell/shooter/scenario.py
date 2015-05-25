@@ -90,25 +90,20 @@ class Exchange(object):
             str(self.message.yaml_tag),
             str(self.arguments))
 
-    def set_context(self, context):
-        pass
-
-    #def build(self, zmq_method):
-        #pass
+    def build(self, context, in_socket, out_socket):
+        self._in_socket = in_socket
+        self._out_socket = out_socket
+        self._context = context
 
 
 class In(yaml.YAMLObject, Exchange):
     __metaclass__ = ExchangeMetaClass
     yaml_tag = u'!In'
 
-    def set_context(self, context):
-        self._context = context
-
-    # TODO: move the two sockets in build / set_context
-    def step(self, in_socket, out_socket):
+    def step(self):
         print("In.step")
         try:
-            zmq_message = in_socket.recv(zmq.NOBLOCK)
+            zmq_message = self._in_socket.recv(zmq.NOBLOCK)
         except:
             zmq_message = None
         if (zmq_message):
@@ -124,10 +119,9 @@ class Out(yaml.YAMLObject, Exchange):
     yaml_tag = u'!Out'
     arguments = {}
 
-    # TODO: move the two sockets in build / set_context
-    def step(self, in_socket, out_socket):
+    def step(self):
         print("Out.step")
-        out_socket.send(self.message.get_zmq_message(self.arguments))
+        self._out_socket.send(self.message.get_zmq_message(self.arguments))
         return None, True
 
 
@@ -148,8 +142,8 @@ class Equal(yaml.YAMLObject):
     yaml_tag = u'!Equal'
     eval_regexp = re.compile(r'\{[^{].*[^}]\}')
 
-    #def build(self, zmq_context):
-        #pass
+    def build(self, context, in_socket, out_socket):
+        self._context = context
 
     def step(self, *args):
         """Not finished."""
@@ -176,9 +170,6 @@ class Equal(yaml.YAMLObject):
 
     def __repr__(self):
         return "{Equal | %s}" % str(self.values)
-
-    def set_context(self, context):
-        self._context = context
 
 
 class CaptureConverter(object):
@@ -209,14 +200,13 @@ class Thread(yaml.YAMLObject):
         # not really the full messages but the values extracted
         self._received_messages = collections.defaultdict(list)
         for element in self.flow:
-            element.set_context(self)
+            element.build(self, self.in_socket, self.out_socket)
 
     def step(self):
         if (not hasattr(self, "index")):
             self.index = 0
         if (self.index < len(self.flow)):
-            result, inc = self.flow[self.index].step(
-                self.in_socket, self.out_socket)
+            result, inc = self.flow[self.index].step()
             if (result is not None and not result):
                 print("Failure at index " + str(self.index))
                 raise Exception("Failure at index " + str(self.index))
