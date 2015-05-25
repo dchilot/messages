@@ -64,6 +64,7 @@ threads:
 
     @staticmethod
     def test_1():
+        print("test_1")
         import sys
         correct_id = "123"
         yaml_content = MainTest.yaml_content.replace(
@@ -81,6 +82,7 @@ threads:
 
     @staticmethod
     def test_2():
+        print("test_2")
         import sys
         correct_id = "123"
         wrong_id = "666"
@@ -106,18 +108,20 @@ threads:
 
     @staticmethod
     def test_3():
+        print("test_3")
         import sys
         correct_id = "123"
         yaml_content = MainTest.yaml_content.replace(
             "%welcome_id%", correct_id).replace(
                 "%expected_welcome_id%", correct_id)
-        yaml_content = "\n".join(yaml_content.split("\n")[:-1])
+        yaml_content = "\n".join(yaml_content.split("\n")[:-2])
         scenario = scen.Scenario(yaml_content)
         try:
             scenario.build()
+            thrown = False
         except Exception as expected_exception:
             thrown = (
-                ("Only 1 value(s) found but 2 expected.",)
+                ("Only {} value(s) found but 2 expected.".format(1),)
                 == expected_exception.args)
             print(expected_exception)
         assert(thrown)
@@ -126,6 +130,7 @@ threads:
 def main():
     MainTest.test_1()
     MainTest.test_2()
+    MainTest.test_3()
 
 if ("__main__" == __name__):
     main()
