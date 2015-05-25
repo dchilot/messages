@@ -19,10 +19,10 @@ class Socket(object):
             address = getattr(self, 'address', "127.0.0.1")
         return "%s://%s:%i" % (protocol, address, self.port)
 
-    def build(self, context):
+    def build(self, zmq_context):
         bind = getattr(self, 'bind', False)
         self.bind = bind
-        self._zmq_socket = context.socket(self.zmq_method)
+        self._zmq_socket = zmq_context.socket(self.zmq_method)
         self._zmq_socket.setsockopt(zmq.LINGER, 1)
         if (bind):
             self._zmq_socket.bind(self.connection_string)
@@ -90,10 +90,10 @@ class Exchange(object):
             str(self.message.yaml_tag),
             str(self.arguments))
 
-    def build(self, context, in_socket, out_socket):
+    def build(self, repository, in_socket, out_socket):
         self._in_socket = in_socket
         self._out_socket = out_socket
-        self._context = context
+        self._repository = repository
 
 
 class In(yaml.YAMLObject, Exchange):
@@ -110,7 +110,7 @@ class In(yaml.YAMLObject, Exchange):
             print("received zmq message %s" % repr(zmq_message))
             message = yaml2protobuf.Capture.create_from_zmq(zmq_message)
             self.message.compute_differences(message)
-            self._context.add_received_message(self.message)
+            self._repository.add_received_message(self.message)
         return zmq_message, zmq_message is not None
 
 
@@ -125,25 +125,15 @@ class Out(yaml.YAMLObject, Exchange):
         return None, True
 
 
-class Capture(yaml.YAMLObject):
-    yaml_tag = u'!Capture'
-
-    def update(self, context):
-        self._expanded_value = self.value.format(**context)
-
-    def __eq__(self, other):
-        return self._expanded_value == other
-
-    def __repr__(self):
-        return "{Capture | %s}" % self.value
-
-
 class Equal(yaml.YAMLObject):
     yaml_tag = u'!Equal'
-    eval_regexp = re.compile(r'\{[^{].*[^}]\}')
 
-    def build(self, context, in_socket, out_socket):
-        self._context = context
+    def build(self, repository, in_socket, out_socket):
+        self._repository = repository
+        values_count = len(self.values)
+        if (values_count < 2):
+            raise Exception(
+                "Only {} value(s) found but 2 expected.".format(values_count))
 
     def step(self, *args):
         """Not finished."""
@@ -154,11 +144,7 @@ class Equal(yaml.YAMLObject):
         reference = None
         all_equal = True
         for value in self.values:
-            if (Equal.eval_regexp.match(value)):
-                # TODO: find a way not to access the private member
-                print(self._context._received_messages)
-                value = str(
-                    eval(value[1:-1], self._context._received_messages))
+            value = self._repository.expand(value)
             if (reference is None):
                 reference = value
             else:
@@ -191,16 +177,38 @@ class CaptureConverter(object):
             return object.__getattribute__(self, attribute)
 
 
+class CaptureRepository(object):
+    eval_regexp = re.compile(r'\{[^{].*[^}]\}')
+
+    def __init__(self):
+        self._values_from_received_messages =  collections.defaultdict(list)
+
+    def add_received_message(self, message):
+        # message is of type CaptureXXX
+        capture_converter = CaptureConverter(message.captured)
+        self._values_from_received_messages[message.message_type].append(
+            capture_converter)
+
+    def expand(self, string):
+        if (CaptureRepository.eval_regexp.match(string)):
+            string_without_brackets = string[1:-1]
+            value = str(eval(
+                string_without_brackets,
+                self._values_from_received_messages))
+        else:
+            value = string
+        return value
+
+
 class Thread(yaml.YAMLObject):
     yaml_tag = u'!Thread'
 
     def build(self, zmq_context):
         self.in_socket.build(zmq_context)
         self.out_socket.build(zmq_context)
-        # not really the full messages but the values extracted
-        self._received_messages = collections.defaultdict(list)
+        self._repository = CaptureRepository()
         for element in self.flow:
-            element.build(self, self.in_socket, self.out_socket)
+            element.build(self._repository, self.in_socket, self.out_socket)
 
     def step(self):
         if (not hasattr(self, "index")):
@@ -208,8 +216,9 @@ class Thread(yaml.YAMLObject):
         if (self.index < len(self.flow)):
             result, inc = self.flow[self.index].step()
             if (result is not None and not result):
-                print("Failure at index " + str(self.index))
-                raise Exception("Failure at index " + str(self.index))
+                error_message = "Failure at index {} in thread '{}'.".format(
+                    self.index, self.name)
+                raise Exception(error_message)
             if (inc):
                 self.index = (self.index + 1) % len(self.flow)
 
@@ -223,17 +232,6 @@ class Thread(yaml.YAMLObject):
             str(self.out_socket),
             str(self.flow)
             )
-
-    def add_received_message(self, message):
-        # message is of type CaptureXXX
-        capture_converter = CaptureConverter(message.captured)
-        if (hasattr(capture_converter, "id")):
-            print("capture_converter.id")
-            print(capture_converter.id)
-        else:
-            print("No id in " + str(message))
-        self._received_messages[message.message_type].append(
-            capture_converter)
 
 
 class Scenario(object):

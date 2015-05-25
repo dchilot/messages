@@ -37,6 +37,7 @@ sockets:
 
 threads:
     - !Thread
+        name: "fake server"
         in_socket: *pull_a
         out_socket: *push_b
         flow:
@@ -47,6 +48,7 @@ threads:
                 arguments:
                     id: '%welcome_id%'
     - !Thread
+        name: "fake client"
         in_socket: *pull_b
         out_socket: *push_a
         flow:
@@ -58,15 +60,6 @@ threads:
                 values:
                     - '%expected_welcome_id%'
                     - "{Welcome[-1].id}"
-"""
-    # not sure about keeping Capture ; format string could be enough
-    alternate_end = """
-            - !Equal
-                values:
-                    - '%expected_welcome_id%'
-                    - !Capture
-                        value: "{welcome[-1].id}"
-                    - "{welcome[-1].id}"
 """
 
     @staticmethod
@@ -104,10 +97,31 @@ threads:
             scenario.step()
             thrown = False
         except Exception as expected_exception:
-            thrown = True
+            thrown = (
+                ("Failure at index 2 in thread 'fake client'.",)
+                == expected_exception.args)
+            print(expected_exception)
         assert(thrown)
         scenario.terminate()
 
+    @staticmethod
+    def test_3():
+        import sys
+        correct_id = "123"
+        yaml_content = MainTest.yaml_content.replace(
+            "%welcome_id%", correct_id).replace(
+                "%expected_welcome_id%", correct_id)
+        yaml_content = "\n".join(yaml_content.split("\n")[:-1])
+        scenario = scen.Scenario(yaml_content)
+        try:
+            scenario.build()
+        except Exception as expected_exception:
+            thrown = (
+                ("Only 1 value(s) found but 2 expected.",)
+                == expected_exception.args)
+            print(expected_exception)
+        assert(thrown)
+        scenario.terminate()
 
 def main():
     MainTest.test_1()
