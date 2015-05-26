@@ -159,9 +159,6 @@ message: !CaptureInput {{ "message": {{ "move": {{ "left": {left}, "right": {rig
     def test_key_map():
         pb_message = pb_controller.Input()
         pb_message.move.left = 0.2
-
-
-        #pb_message.move.right = FakeInt("{test}")
         pb_message.move.right = -0.5
         pb_message.fire.weapon1 = False
         pb_message.fire.weapon2 = True

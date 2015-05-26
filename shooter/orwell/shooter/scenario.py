@@ -37,6 +37,7 @@ class Socket(object):
             self._zmq_socket.unbind(self.connection_string)
         else:
             self._zmq_socket.disconnect(self.connection_string)
+        self._zmq_socket.close()
     
 
 class SocketPull(yaml.YAMLObject, Socket):
@@ -51,9 +52,9 @@ class SocketPush(yaml.YAMLObject, Socket):
     yaml_tag = u'!SocketPush'
     zmq_method = zmq.PUSH
 
-    def send(self, *args, **kwargs):
-        print("SocketPush.send(%s, %s)" % (str(*args), str(**kwargs)))
-        self._zmq_socket.send(*args, **kwargs)
+    def send(self, data):
+        print("SocketPush.send({})".format(repr(data)))
+        self._zmq_socket.send(data)
 
 
 class ExchangeMetaClass(type):
@@ -119,6 +120,9 @@ class Out(yaml.YAMLObject, Exchange):
     yaml_tag = u'!Out'
     arguments = {}
 
+    def build(self, repository, in_socket, out_socket):
+        super(self.__class__, self).build(repository, in_socket, out_socket)
+
     def step(self):
         print("Out.step")
         self._out_socket.send(self.message.get_zmq_message(self.arguments))
@@ -136,10 +140,7 @@ class Equal(yaml.YAMLObject):
                 "Only {} value(s) found but 2 expected.".format(values_count))
 
     def step(self, *args):
-        """Not finished."""
-
-        print("Equal::step")
-        print(self)
+        print("Equal.step")
         formatted_values = []
         reference = None
         all_equal = True
@@ -214,13 +215,21 @@ class Thread(yaml.YAMLObject):
         if (not hasattr(self, "index")):
             self.index = 0
         if (self.index < len(self.flow)):
+            print("In thread '{name}'".format(name=self.name))
             result, inc = self.flow[self.index].step()
+            print("In thread '{name}': "
+                    "index = {index} ; result = {result} ; inc = {inc}".format(
+                name=self.name, index=self.index, result=result, inc=inc))
             if (result is not None and not result):
                 error_message = "Failure at index {} in thread '{}'.".format(
                     self.index, self.name)
                 raise Exception(error_message)
             if (inc):
-                self.index = (self.index + 1) % len(self.flow)
+                self.index = (self.index + 1)
+                if (self.loop):
+                    self.index %= len(self.flow)
+        else:
+            print("Skipped thread '{name}'".format(name=self.name))
 
     def terminate(self):
         self.in_socket.terminate()
@@ -254,3 +263,4 @@ class Scenario(object):
         # it is ugly to have to call this to close the sockets
         for thread in self._threads:
             thread.terminate()
+        self._zmq_context.term()

@@ -38,6 +38,7 @@ sockets:
 threads:
     - !Thread
         name: "fake server"
+        loop: False
         in_socket: *pull_a
         out_socket: *push_b
         flow:
@@ -49,6 +50,7 @@ threads:
                     id: '%welcome_id%'
     - !Thread
         name: "fake client"
+        loop: False
         in_socket: *pull_b
         out_socket: *push_a
         flow:
@@ -78,6 +80,9 @@ threads:
         scenario.step()
         scenario.step()
         scenario.step()
+        # make sure we move to the step receiving the message
+        for i in range(5):
+            scenario.step()
         scenario.terminate()
 
     @staticmethod
@@ -96,12 +101,17 @@ threads:
         scenario.step()
         scenario.step()
         try:
-            scenario.step()
+            # make sure we move to the step receiving the message
+            for i in range(5):
+                scenario.step()
             thrown = False
+            sys.stdout.write("No exception raised.\n")
         except Exception as expected_exception:
             thrown = (
                 ("Failure at index 2 in thread 'fake client'.",)
                 == expected_exception.args)
+            if (not thrown):
+                sys.stdout.write("Exception different from expectation.\n")
             print(expected_exception)
         assert(thrown)
         scenario.terminate()
@@ -126,6 +136,7 @@ threads:
             print(expected_exception)
         assert(thrown)
         scenario.terminate()
+
 
 def main():
     MainTest.test_1()
