@@ -38,14 +38,21 @@ class Socket(object):
         else:
             self._zmq_socket.disconnect(self.connection_string)
         self._zmq_socket.close()
-    
+
+    def poll(self, timeout):
+        return self._zmq_socket.poll(timeout)
+
 
 class SocketPull(yaml.YAMLObject, Socket):
     yaml_tag = u'!SocketPull'
     zmq_method = zmq.PULL
 
     def recv(self, *args, **kwargs):
-        return self._zmq_socket.recv(*args, **kwargs)
+        event = self._zmq_socket.poll(10)
+        if (zmq.POLLIN == event):
+            return self._zmq_socket.recv(*args, **kwargs)
+        else:
+            return None
 
 
 class SocketPush(yaml.YAMLObject, Socket):
@@ -65,11 +72,11 @@ class ExchangeMetaClass(type):
 
         # prune repeated or conflicting entries
         metas = [meta for index, meta in enumerate(metas)
-            if not [later for later in metas[index+1:]
-                if issubclass(later, meta)]]
+                 if not [later for later in metas[index+1:]
+                         if issubclass(later, meta)]]
 
         # whip up the actual combined meta class derive off all of these
-        meta = type(name, tuple(metas), dict(combined_metas = metas))
+        meta = type(name, tuple(metas), dict(combined_metas=metas))
 
         # the member is added here because the constructor does not get
         # called when the objects are constructed from yaml.
@@ -104,8 +111,9 @@ class In(yaml.YAMLObject, Exchange):
     def step(self):
         print("In.step")
         try:
-            zmq_message = self._in_socket.recv(zmq.NOBLOCK)
-        except:
+            zmq_message = self._in_socket.recv()
+        except Exception as ex:
+            print("Exception in In.step:" + str(ex))
             zmq_message = None
         if (zmq_message):
             print("received zmq message %s" % repr(zmq_message))
@@ -141,7 +149,6 @@ class Equal(yaml.YAMLObject):
 
     def step(self, *args):
         print("Equal.step")
-        formatted_values = []
         reference = None
         all_equal = True
         for value in self.values:
@@ -182,7 +189,7 @@ class CaptureRepository(object):
     eval_regexp = re.compile(r'\{[^{].*[^}]\}')
 
     def __init__(self):
-        self._values_from_received_messages =  collections.defaultdict(list)
+        self._values_from_received_messages = collections.defaultdict(list)
 
     def add_received_message(self, message):
         # message is of type CaptureXXX
@@ -218,8 +225,11 @@ class Thread(yaml.YAMLObject):
             print("In thread '{name}'".format(name=self.name))
             result, inc = self.flow[self.index].step()
             print("In thread '{name}': "
-                    "index = {index} ; result = {result} ; inc = {inc}".format(
-                name=self.name, index=self.index, result=result, inc=inc))
+                  "index = {index} ; result = {result} ; inc = {inc}".format(
+                      name=self.name,
+                      index=self.index,
+                      result=result,
+                      inc=inc))
             if (result is not None and not result):
                 error_message = "Failure at index {} in thread '{}'.".format(
                     self.index, self.name)

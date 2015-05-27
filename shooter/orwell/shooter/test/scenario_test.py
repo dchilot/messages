@@ -1,11 +1,7 @@
-from nose.tools import assert_equal
-#from nose.tools import assert_true
-#from nose.tools import assert_false
-from nose.tools import assert_raises
 import unittest
 import orwell.shooter.scenario as scen
-import pprint
-import yaml
+import sys
+
 
 class MainTest(unittest.TestCase):
     yaml_content = """
@@ -88,7 +84,6 @@ threads:
     @staticmethod
     def test_2():
         print("test_2")
-        import sys
         correct_id = "123"
         wrong_id = "666"
         yaml_content = MainTest.yaml_content.replace(
@@ -119,7 +114,6 @@ threads:
     @staticmethod
     def test_3():
         print("test_3")
-        import sys
         correct_id = "123"
         yaml_content = MainTest.yaml_content.replace(
             "%welcome_id%", correct_id).replace(

@@ -15,7 +15,7 @@ import google.protobuf.descriptor as pb_descriptor
 
 
 # adapted from http://stackoverflow.com/a/12144823/3552528
-class CustomMetaClass(type): 
+class CustomMetaClass(type):
 
     def __new__(cls, name, bases, members):
         #collect up the metaclasses
@@ -23,11 +23,11 @@ class CustomMetaClass(type):
 
         # prune repeated or conflicting entries
         metas = [meta for index, meta in enumerate(metas)
-            if not [later for later in metas[index+1:]
-                if issubclass(later, meta)]]
+                 if not [later for later in metas[index+1:]
+                         if issubclass(later, meta)]]
 
         # whip up the actual combined meta class derive off all of these
-        meta = type(name, tuple(metas), dict(combined_metas = metas))
+        meta = type(name, tuple(metas), dict(combined_metas=metas))
 
         # the member is added here because the constructor does not get
         # called when the objects are constructed from yaml.
@@ -71,9 +71,9 @@ class Base(object):
 
     def __repr__(self):
         return "%s(%s)" % (
-                self.__class__.__name__,
-                str(self.message),
-            )
+            self.__class__.__name__,
+            str(self.message),
+        )
 
     @property
     def key_map(self):
@@ -82,7 +82,7 @@ class Base(object):
             path_stack = [""]
             pb_stack = [self.protobuf_message]
             self._key_map = {}
-            first  = True
+            first = True
             while (pb_stack):
                 message = pb_stack.pop()
                 if (path_stack):
@@ -92,7 +92,7 @@ class Base(object):
                     path.append(descriptor.name)
                     if (descriptor.type in
                             (pb_descriptor.FieldDescriptor.TYPE_GROUP,
-                            pb_descriptor.FieldDescriptor.TYPE_MESSAGE)):
+                             pb_descriptor.FieldDescriptor.TYPE_MESSAGE)):
                         # nested message
                         pb_stack.append(value)
                         path_stack.append(path.pop())
@@ -185,7 +185,7 @@ class Capture(object):
         return " ".join((
             self.destination,
             self.PROTOBUF_CLASS.DESCRIPTOR.name,
-            self.protobuf_message.SerializeToString())) 
+            self.protobuf_message.SerializeToString()))
 
     def get_zmq_message(self, dico):
         if (('{' == self.destination[0]) and ('}' == self.destination[-1])):
@@ -195,7 +195,7 @@ class Capture(object):
         return " ".join((
             destination,
             self.PROTOBUF_CLASS.DESCRIPTOR.name,
-            self.fill(dico).SerializeToString())) 
+            self.fill(dico).SerializeToString()))
 
     def __getitem__(self, index):
         return self.captured[index]
@@ -290,6 +290,7 @@ class Capture(object):
 
 def get_classes_from_class_or_module(module_or_class, level, nesting=None):
     """ Extract module and name of classes.
+
     There is a special case for nested classes as the name of the parent class
     has to be added manually.
     Working with nested classes is not a good idea in the end as pbjson does
