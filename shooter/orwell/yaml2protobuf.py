@@ -160,7 +160,7 @@ class Capture(object):
             path_stack = [""]
             dico_stack = [self.message]
             self._key_map = {}
-            first  = True
+            first = True
             while (dico_stack):
                 dico = dico_stack.pop()
                 if (path_stack):
