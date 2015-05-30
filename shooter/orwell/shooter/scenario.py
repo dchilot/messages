@@ -268,9 +268,13 @@ class Scenario(object):
         for thread in self._threads:
             thread.step()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.terminate()
+
     def terminate(self):
-        # TODO: clean
-        # it is ugly to have to call this to close the sockets
         for thread in self._threads:
             thread.terminate()
         self._zmq_context.term()

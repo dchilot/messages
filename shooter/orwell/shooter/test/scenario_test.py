@@ -68,18 +68,17 @@ threads:
         yaml_content = MainTest.yaml_content.replace(
             "%welcome_id%", correct_id).replace(
                 "%expected_welcome_id%", correct_id)
-        scenario = scen.Scenario(yaml_content)
-        sys.stderr.write("\n" + str(scenario._data) + "\n")
-        scenario.build()
-        scenario.step()
-        scenario.step()
-        scenario.step()
-        scenario.step()
-        scenario.step()
-        # make sure we move to the step receiving the message
-        for i in range(5):
+        with scen.Scenario(yaml_content) as scenario:
+            sys.stderr.write("\n" + str(scenario._data) + "\n")
+            scenario.build()
             scenario.step()
-        scenario.terminate()
+            scenario.step()
+            scenario.step()
+            scenario.step()
+            scenario.step()
+            # make sure we move to the step receiving the message
+            for i in range(5):
+                scenario.step()
 
     @staticmethod
     def test_2():
@@ -89,27 +88,26 @@ threads:
         yaml_content = MainTest.yaml_content.replace(
             "%welcome_id%", correct_id).replace(
                 "%expected_welcome_id%", wrong_id)
-        scenario = scen.Scenario(yaml_content)
-        sys.stderr.write("\n" + str(scenario._data) + "\n")
-        scenario.build()
-        scenario.step()
-        scenario.step()
-        scenario.step()
-        try:
-            # make sure we move to the step receiving the message
-            for i in range(5):
-                scenario.step()
-            thrown = False
-            sys.stdout.write("No exception raised.\n")
-        except Exception as expected_exception:
-            thrown = (
-                ("Failure at index 2 in thread 'fake client'.",)
-                == expected_exception.args)
-            if (not thrown):
-                sys.stdout.write("Exception different from expectation.\n")
-            print(expected_exception)
+        with scen.Scenario(yaml_content) as scenario:
+            sys.stderr.write("\n" + str(scenario._data) + "\n")
+            scenario.build()
+            scenario.step()
+            scenario.step()
+            scenario.step()
+            try:
+                # make sure we move to the step receiving the message
+                for i in range(5):
+                    scenario.step()
+                thrown = False
+                sys.stdout.write("No exception raised.\n")
+            except Exception as expected_exception:
+                thrown = (
+                    ("Failure at index 2 in thread 'fake client'.",)
+                    == expected_exception.args)
+                if (not thrown):
+                    sys.stdout.write("Exception different from expectation.\n")
+                print(expected_exception)
         assert(thrown)
-        scenario.terminate()
 
     @staticmethod
     def test_3():

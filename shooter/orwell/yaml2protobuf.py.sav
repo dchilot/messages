@@ -1,0 +1,88 @@
+import yaml
+from . import messages
+import orwell.messages.controller_pb2 as pb_controller
+
+
+# http://stackoverflow.com/a/12144823/3552528
+class CooperativeMeta(type):
+    def __new__(cls, name, bases, members):
+        #collect up the metaclasses
+        metas = [type(base) for base in bases]
+
+        # prune repeated or conflicting entries
+        metas = [meta for index, meta in enumerate(metas)
+            if not [later for later in metas[index+1:]
+                if issubclass(later, meta)]]
+
+        # whip up the actual combined meta class derive off all of these
+        meta = type(name, tuple(metas), dict(combined_metas = metas))
+
+        # make the actual object
+        return meta(name, bases, members)
+
+    def __init__(self, name, bases, members):
+        for meta in self.combined_metas:
+            meta.__init__(self, name, bases, members)
+
+
+class CustomMetaClass(type): 
+
+    def __new__(cls, name, bases, members):
+        #collect up the metaclasses
+        metas = [type(base) for base in bases]
+
+        # prune repeated or conflicting entries
+        metas = [meta for index, meta in enumerate(metas)
+            if not [later for later in metas[index+1:]
+                if issubclass(later, meta)]]
+
+        # whip up the actual combined meta class derive off all of these
+        meta = type(name, tuple(metas), dict(combined_metas = metas))
+
+        import sys
+        sys.stderr.write("attributes = " + str(members) + "\n")
+        sys.stderr.write("__protobuf__ = " + str(dir(members['__protobuf__'])) + "\n")
+        sys.stderr.write("__protobuf__[fields] = " + str(members['__protobuf__']._fields) + "\n")
+
+        # make the actual object
+        return meta(name, bases, members)
+
+    def __init__(self, name, bases, members):
+        for meta in self.combined_metas:
+            meta.__init__(self, name, bases, members)
+
+
+class Hello(yaml.YAMLObject):
+    __metaclass__ = CustomMetaClass
+    __protobuf__ = pb_controller.Hello
+    yaml_tag = u'!Hello'
+
+    DEFAULTS = { 'ready': False }
+
+    def __new__(cls, *args, **kwargs):
+        obj = super(Hello, cls).__new__(cls)
+        obj.ready = cls.DEFAULTS['ready']
+        return obj
+
+    def __init__(self, name, ready=DEFAULTS['ready']):
+        self.name = name
+        self.ready = ready
+
+    def load(self):
+        self._message = pb_controller.Hello()
+        self._message.name = self.name
+        self._message.ready = self.ready
+
+    @property
+    def message(self):
+        if (not hasattr(self, '_message')):
+            self.load()
+        return self._message
+
+    def __repr__(self):
+        return "%s(name=%r,ready=%r)" % (
+                self.__class__.__name__,
+                self.name,
+                self.ready
+            )
+
