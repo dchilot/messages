@@ -1,3 +1,5 @@
+from nose.tools import assert_equal
+from nose.tools import assert_raises
 import unittest
 import orwell.shooter.scenario as scen
 import sys
@@ -63,7 +65,6 @@ threads:
     @staticmethod
     def test_1():
         print("test_1")
-        import sys
         correct_id = "123"
         yaml_content = ScenarioTest.yaml_content.replace(
             "%welcome_id%", correct_id).replace(
@@ -130,10 +131,52 @@ threads:
         scenario.terminate()
 
 
+class FakeMessage(object):
+    def __init__(self, message_type, captured):
+        self.message_type = message_type
+        self.captured = captured
+
+
+class CaptureRepositoryTest(unittest.TestCase):
+    @staticmethod
+    def _check(repo, pattern, expected):
+        is_exception = isinstance(expected, BaseException)
+        if (is_exception):
+            exception_type = type(expected)
+            try:
+                repo.expand(pattern)
+            except exception_type as exception:
+                assert_equal(repr(expected), repr(exception), pattern)
+        else:
+            expanded = repo.expand(pattern)
+            assert_equal(expected, expanded, pattern)
+
+    @staticmethod
+    def test_1():
+        print("test_1")
+        name = "NONO"
+        identifier = "ID42"
+        repo = scen.CaptureRepository()
+        repo.add_received_message(FakeMessage("Register", [{"name": name}]))
+        CaptureRepositoryTest._check(repo, "{Register[-1].name}", name)
+        CaptureRepositoryTest._check(repo, "{Register[0].name}", name)
+        repo.add_received_message(
+            FakeMessage("Register", [{"identifier": identifier}]))
+        CaptureRepositoryTest._check(
+            repo, "{Register[-1].name}",
+            AttributeError(
+                "'CaptureConverter' object has no attribute 'name'"))
+        CaptureRepositoryTest._check(
+            repo, "{Register[-1].identifier}", identifier)
+        CaptureRepositoryTest._check(
+            repo, "{Register[0].name}", name)
+
+
 def main():
     ScenarioTest.test_1()
     ScenarioTest.test_2()
     ScenarioTest.test_3()
+    CaptureRepositoryTest.test_1()
 
 if ("__main__" == __name__):
     main()

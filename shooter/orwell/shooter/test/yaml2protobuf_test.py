@@ -182,15 +182,19 @@ message: !CaptureInput
         sys.stderr.write("\n" + str(message1.key_map) + "\n")
         assert_equal(message1.key_map["/move/left"], pb_message.move.left)
         assert_equal(message1.key_map["/move/right"], '{right}')
-        assert_equal(message1.key_map["/fire/weapon1"], pb_message.fire.weapon1)
-        assert_equal(message1.key_map["/fire/weapon2"], pb_message.fire.weapon2)
+        assert_equal(message1.key_map["/fire/weapon1"],
+                     pb_message.fire.weapon1)
+        assert_equal(message1.key_map["/fire/weapon2"],
+                     pb_message.fire.weapon2)
         pb_message.move.left = 1.0
         message2 = y2p.Input(pb_message.SerializeToString())
         sys.stderr.write(str(message2.key_map) + "\n")
         assert_equal(message2.key_map["/move/left"], pb_message.move.left)
         assert_equal(message2.key_map["/move/right"], pb_message.move.right)
-        assert_equal(message2.key_map["/fire/weapon1"], pb_message.fire.weapon1)
-        assert_equal(message2.key_map["/fire/weapon2"], pb_message.fire.weapon2)
+        assert_equal(message2.key_map["/fire/weapon1"],
+                     pb_message.fire.weapon1)
+        assert_equal(message2.key_map["/fire/weapon2"],
+                     pb_message.fire.weapon2)
         diffs = message1.compute_differences(message2)
         sys.stderr.write(str(diffs) + "\n")
         assert_equal(
@@ -203,6 +207,23 @@ message: !CaptureInput
         message2.protobuf_message.move.left = 0.2
         assert_equal(str(pb_message), str(message2.protobuf_message))
         assert_equal(pb_message, message2.protobuf_message)
+
+
+class CaptureTest(unittest.TestCase):
+    @staticmethod
+    def test_create_from_zmq():
+        fake_message_type = "FakeMessageType"
+        try:
+            y2p.Capture.create_from_zmq("destination {} payload".format(
+                fake_message_type))
+        except Exception as exception:
+            expected = Exception("Invalid message type: " + fake_message_type)
+            assert_equal(repr(expected), repr(exception))
+
+
+def test_generate():
+    y2p.generate()
+
 
 def main():
     MainTest.test_key_map()

@@ -6,9 +6,12 @@ import re
 
 
 class Socket(object):
-    def __init__(self):
-        pass
 
+    """Base class for zmq socket wrappers.
+
+    This should not be instantiated but contains some methods common to
+    the derived classes.
+    """
     @property
     def connection_string(self):
         bind = getattr(self, 'bind', False)
@@ -39,11 +42,14 @@ class Socket(object):
             self._zmq_socket.disconnect(self.connection_string)
         self._zmq_socket.close()
 
-    def poll(self, timeout):
-        return self._zmq_socket.poll(timeout)
-
 
 class SocketPull(yaml.YAMLObject, Socket):
+
+    """To be used in YAML.
+
+    Wrapper for zmq pull socket.
+    """
+
     yaml_tag = u'!SocketPull'
     zmq_method = zmq.PULL
 
@@ -56,6 +62,12 @@ class SocketPull(yaml.YAMLObject, Socket):
 
 
 class SocketPush(yaml.YAMLObject, Socket):
+
+    """To be used in YAML.
+
+    Wrapper for zmq push socket.
+    """
+
     yaml_tag = u'!SocketPush'
     zmq_method = zmq.PUSH
 
@@ -65,6 +77,11 @@ class SocketPush(yaml.YAMLObject, Socket):
 
 
 class ExchangeMetaClass(type):
+
+    """Metaclass to combine YAMLObject and base class Exchange.
+
+    adapted from http://stackoverflow.com/a/12144823/3552528
+    """
 
     def __new__(cls, name, bases, members):
         #collect up the metaclasses
@@ -92,6 +109,13 @@ class ExchangeMetaClass(type):
 
 
 class Exchange(object):
+
+    """Base class for exchanges which are about sending or receiving messages.
+
+    This should not be instantiated but contains some methods common to
+    the derived classes.
+    """
+
     def __repr__(self):
         return "{%s | message: %s ; arguments: %s}" % (
             self.yaml_tag,
@@ -105,6 +129,12 @@ class Exchange(object):
 
 
 class In(yaml.YAMLObject, Exchange):
+
+    """To be used in YAML.
+
+    Class to receive messages in a thread.
+    """
+
     __metaclass__ = ExchangeMetaClass
     yaml_tag = u'!In'
 
@@ -124,6 +154,12 @@ class In(yaml.YAMLObject, Exchange):
 
 
 class Out(yaml.YAMLObject, Exchange):
+
+    """To be used in YAML.
+
+    Class to send messages in a thread.
+    """
+
     __metaclass__ = ExchangeMetaClass
     yaml_tag = u'!Out'
     arguments = {}
@@ -133,11 +169,17 @@ class Out(yaml.YAMLObject, Exchange):
 
     def step(self):
         print("Out.step")
-        self._out_socket.send(self.message.get_zmq_message(self.arguments))
+        self._out_socket.send(self.message.encode_zmq_message(self.arguments))
         return None, True
 
 
 class Equal(yaml.YAMLObject):
+
+    """To be used in YAML.
+
+    Class to assert that some given values are equal.
+    """
+
     yaml_tag = u'!Equal'
 
     def build(self, repository, in_socket, out_socket):
@@ -167,6 +209,14 @@ class Equal(yaml.YAMLObject):
 
 
 class CaptureConverter(object):
+
+    """Converts the format of yaml2protobuf.CaptureXXX.captured.
+
+    The only used should be in CaptureRepository to have an easy syntax to
+    evaluate user provided expressions to manipulate values captured in
+    received messages.
+    """
+
     def __init__(self, capture_list):
         self._values = {}
         print("capture_list")
@@ -186,6 +236,12 @@ class CaptureConverter(object):
 
 
 class CaptureRepository(object):
+
+    """Deals with values extracted from captures in received messages.
+
+    Warning: there is an unsafe eval performed.
+    """
+
     eval_regexp = re.compile(r'\{[^{].*[^}]\}')
 
     def __init__(self):
@@ -209,6 +265,12 @@ class CaptureRepository(object):
 
 
 class Thread(yaml.YAMLObject):
+
+    """To be used in YAML.
+
+    Class to describe a succession of steps to be executed in sequence.
+    """
+
     yaml_tag = u'!Thread'
 
     def build(self, zmq_context):
@@ -254,6 +316,15 @@ class Thread(yaml.YAMLObject):
 
 
 class Scenario(object):
+
+    """This is what clients of this module need to use.
+
+    The other classes are only helping build a scenario in YAML which is
+    wrapped by this class.
+    This is implemented as a context manager so that users do not have to
+    remember to call terminate when done to clean zmq objects.
+    """
+
     def __init__(self, yaml_content):
         self._data = yaml.load(yaml_content)
         self._messages = self._data["messages"]

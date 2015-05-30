@@ -65,6 +65,7 @@ class Base(object):
             return message
         else:
             if (attribute in message):
+                # this seems to never be visited but is kept just in case
                 return message[attribute]
             else:
                 return object.__getattribute__(self, attribute)
@@ -180,14 +181,7 @@ class Capture(object):
                     first = False
         return self._key_map
 
-    @property
-    def zmq_message(self):
-        return " ".join((
-            self.destination,
-            self.PROTOBUF_CLASS.DESCRIPTOR.name,
-            self.protobuf_message.SerializeToString()))
-
-    def get_zmq_message(self, dico):
+    def encode_zmq_message(self, dico):
         if (('{' == self.destination[0]) and ('}' == self.destination[-1])):
             destination = self.destination.format(**dico)
         else:
@@ -288,34 +282,22 @@ class Capture(object):
         return dict2pb(self.PROTOBUF_CLASS, expanded_dico)
 
 
-def get_classes_from_class_or_module(module_or_class, level, nesting=None):
+def get_classes_from_module(module):
     """ Extract module and name of classes.
 
-    There is a special case for nested classes as the name of the parent class
-    has to be added manually.
-    Working with nested classes is not a good idea in the end as pbjson does
-    not handle nested messages.
+    Simple version that does not deal with classes nested in other classes.
     """
-    if (nesting is None):
-        nesting = []
     classes_and_modules = []
-    class_descriptions = inspect.getmembers(module_or_class, inspect.isclass)
+    class_descriptions = inspect.getmembers(module, inspect.isclass)
     for class_description in class_descriptions:
         name, klass = class_description
-        if (not name.startswith('_')):
-            module = klass.__module__
-            if (nesting):
-                module += "." + ".".join(nesting)
-            classes_and_modules.append((name, module))
-            if (level > 0):
-                nesting.append(name)
-                classes_and_modules.extend(get_classes_from_class_or_module(
-                    klass, level - 1, nesting))
-                nesting.pop()
+        module = klass.__module__
+        classes_and_modules.append((name, module))
     return classes_and_modules
 
 
 def generate():
+    """Used to generate code with cog."""
     import orwell.messages.controller_pb2 as pb_controller
     import orwell.messages.robot_pb2 as pb_robot
     import orwell.messages.server_game_pb2 as pb_server_game
@@ -337,10 +319,10 @@ class Capture{name}(yaml.YAMLObject, Capture):
     output = ""
 
     output += "\n"
-    array = get_classes_from_class_or_module(pb_controller, 1)
-    array += get_classes_from_class_or_module(pb_robot, 1)
-    array += get_classes_from_class_or_module(pb_server_game, 1)
-    array += get_classes_from_class_or_module(pb_server_web, 1)
+    array = get_classes_from_module(pb_controller)
+    array += get_classes_from_module(pb_robot)
+    array += get_classes_from_module(pb_server_game)
+    array += get_classes_from_module(pb_server_web)
     for class_name, module_name in array:
         output += TEMPLATE.format(name=class_name, module=module_name)
     return output
