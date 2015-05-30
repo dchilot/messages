@@ -3,7 +3,7 @@ import orwell.shooter.scenario as scen
 import sys
 
 
-class MainTest(unittest.TestCase):
+class ScenarioTest(unittest.TestCase):
     yaml_content = """
 messages:
     - hello: !CaptureHello &hello
@@ -65,7 +65,7 @@ threads:
         print("test_1")
         import sys
         correct_id = "123"
-        yaml_content = MainTest.yaml_content.replace(
+        yaml_content = ScenarioTest.yaml_content.replace(
             "%welcome_id%", correct_id).replace(
                 "%expected_welcome_id%", correct_id)
         with scen.Scenario(yaml_content) as scenario:
@@ -85,7 +85,7 @@ threads:
         print("test_2")
         correct_id = "123"
         wrong_id = "666"
-        yaml_content = MainTest.yaml_content.replace(
+        yaml_content = ScenarioTest.yaml_content.replace(
             "%welcome_id%", correct_id).replace(
                 "%expected_welcome_id%", wrong_id)
         with scen.Scenario(yaml_content) as scenario:
@@ -113,7 +113,7 @@ threads:
     def test_3():
         print("test_3")
         correct_id = "123"
-        yaml_content = MainTest.yaml_content.replace(
+        yaml_content = ScenarioTest.yaml_content.replace(
             "%welcome_id%", correct_id).replace(
                 "%expected_welcome_id%", correct_id)
         yaml_content = "\n".join(yaml_content.split("\n")[:-2])
@@ -131,9 +131,9 @@ threads:
 
 
 def main():
-    MainTest.test_1()
-    MainTest.test_2()
-    MainTest.test_3()
+    ScenarioTest.test_1()
+    ScenarioTest.test_2()
+    ScenarioTest.test_3()
 
 if ("__main__" == __name__):
     main()
