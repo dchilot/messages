@@ -28,9 +28,12 @@ class Socket(object):
         self._zmq_socket = zmq_context.socket(self.zmq_method)
         self._zmq_socket.setsockopt(zmq.LINGER, 1)
         if (bind):
+            print "Bind socket " + str(self.zmq_method) + " with " + self.connection_string
             self._zmq_socket.bind(self.connection_string)
         else:
-            self._zmq_socket.connect(self.connection_string)
+            print "Connect socket " + str(self.zmq_method) + " with " + self.connection_string
+            connect_result = self._zmq_socket.connect(self.connection_string)
+            print "connect_result = " + str(connect_result)
 
     def __repr__(self):
         return "{%s | %s}" % (self.yaml_tag[1:], self.connection_string)
@@ -74,6 +77,29 @@ class SocketPush(yaml.YAMLObject, Socket):
     def send(self, data):
         print("SocketPush.send({})".format(repr(data)))
         self._zmq_socket.send(data)
+
+
+class SocketSubscribe(yaml.YAMLObject, Socket):
+
+    """To be used in YAML.
+
+    Wrapper for zmq sub socket.
+    """
+
+    yaml_tag = u'!SocketSubscribe'
+    zmq_method = zmq.SUB
+
+    def build(self, zmq_context):
+        super(self.__class__, self).build(zmq_context)
+        self._zmq_socket.setsockopt(zmq.SUBSCRIBE, "")
+
+    def recv(self, *args, **kwargs):
+        event = self._zmq_socket.poll(10)
+        print "event =", event
+        if (zmq.POLLIN == event):
+            return self._zmq_socket.recv(*args, **kwargs)
+        else:
+            return None
 
 
 class ExchangeMetaClass(type):
@@ -169,7 +195,12 @@ class Out(yaml.YAMLObject, Exchange):
 
     def step(self):
         print("Out.step")
-        self._out_socket.send(self.message.encode_zmq_message(self.arguments))
+        print("arguments = " + str(self.arguments))
+        expanded_arguments = {key: self._repository.expand(value)
+                              for key, value in self.arguments.items()}
+        print("expanded arguments = " + str(expanded_arguments))
+        self._out_socket.send(
+            self.message.encode_zmq_message(expanded_arguments))
         return None, True
 
 
