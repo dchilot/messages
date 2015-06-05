@@ -11,7 +11,8 @@ from pbjson.pbjson import dict2pb
 
 
 class MainTest(unittest.TestCase):
-    def test_1(self):
+    @staticmethod
+    def test_1():
         """Simple test with default value."""
         name = "Test"
         yaml_content = """
@@ -26,7 +27,7 @@ message: !CaptureHello
         message2 = pb_controller.Hello()
         message2.ParseFromString(payload)
         assert_equal(name, message2.name)
-        assert(message2.ready)
+        assert_equal(True, message2.ready)
 
     def test_2(self):
         """Simple test with default value overriden."""
@@ -160,7 +161,7 @@ message: !CaptureInput {{ "message": {{ "move": {{ "left": {left},
         sys.stderr.write(" " + str(message_register.image) + "\n")
         message_registered = pb_server_game.Registered()
         message_registered.robot_id = "ROBOT1"
-        message_registered.team = pb_server_game.RED
+        message_registered.team = "RED"
         sys.stderr.write(str(message_registered) + "\n")
         sys.stderr.write(" " + str(message_registered.robot_id) + "\n")
         sys.stderr.write(" " + str(message_registered.team) + "\n")

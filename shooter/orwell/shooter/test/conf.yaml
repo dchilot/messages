@@ -7,7 +7,7 @@ messages:
     - registered: !Registered
         message:
             robot_id: "{true_id}"
-            team: 0
+            team: Zero
     - input: !Input
         message:
             move:
@@ -22,7 +22,7 @@ messages:
     - welcome: !Welcome
         message:
             robot: Nono
-            team: 1
+            team: One
             id: "{id}"
             video_address: "http://fake.com"
             video_port: 42

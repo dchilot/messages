@@ -16,7 +16,7 @@ messages:
         destination: "{id}"
         message:
             robot: Nono
-            team: 1
+            team: One
             id: "{id}"
             video_address: "http://fake.com"
             video_port: 42
