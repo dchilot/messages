@@ -26,7 +26,7 @@ def main(argv=sys.argv[1:]):
         yaml_content = yaml_scenario.read()
         with scen.Scenario(yaml_content) as scenario:
             scenario.build()
-            while True:
+            while scenario.has_more_steps:
                 log.debug("step")
                 scenario.step()
                 time.sleep(delay)

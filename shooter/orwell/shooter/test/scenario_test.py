@@ -72,14 +72,7 @@ threads:
         with scen.Scenario(yaml_content) as scenario:
             sys.stderr.write("\n" + str(scenario._data) + "\n")
             scenario.build()
-            scenario.step()
-            scenario.step()
-            scenario.step()
-            scenario.step()
-            scenario.step()
-            # make sure we move to the step receiving the message
-            for i in range(5):
-                scenario.step()
+            scenario.step_all()
 
     @staticmethod
     def test_2():

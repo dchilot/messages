@@ -28,12 +28,9 @@ class Socket(object):
         self._zmq_socket = zmq_context.socket(self.zmq_method)
         self._zmq_socket.setsockopt(zmq.LINGER, 1)
         if (bind):
-            print "Bind socket " + str(self.zmq_method) + " with " + self.connection_string
             self._zmq_socket.bind(self.connection_string)
         else:
-            print "Connect socket " + str(self.zmq_method) + " with " + self.connection_string
-            connect_result = self._zmq_socket.connect(self.connection_string)
-            print "connect_result = " + str(connect_result)
+            self._zmq_socket.connect(self.connection_string)
 
     def __repr__(self):
         return "{%s | %s}" % (self.yaml_tag[1:], self.connection_string)
@@ -310,11 +307,11 @@ class Thread(yaml.YAMLObject):
         self._repository = CaptureRepository()
         for element in self.flow:
             element.build(self._repository, self.in_socket, self.out_socket)
-
-    def step(self):
         if (not hasattr(self, "index")):
             self.index = 0
-        if (self.index < len(self.flow)):
+
+    def step(self):
+        if (self.has_more_steps):
             print("In thread '{name}'".format(name=self.name))
             result, inc = self.flow[self.index].step()
             print("In thread '{name}': "
@@ -333,6 +330,10 @@ class Thread(yaml.YAMLObject):
                     self.index %= len(self.flow)
         else:
             print("Skipped thread '{name}'".format(name=self.name))
+
+    @property
+    def has_more_steps(self):
+        return (self.index < len(self.flow))
 
     def terminate(self):
         self.in_socket.terminate()
@@ -369,6 +370,14 @@ class Scenario(object):
     def step(self):
         for thread in self._threads:
             thread.step()
+
+    def step_all(self):
+        while (self.has_more_steps):
+            self.step()
+
+    @property
+    def has_more_steps(self):
+        return all((thread.has_more_steps for thread in self._threads))
 
     def __enter__(self):
         return self
