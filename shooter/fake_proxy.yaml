@@ -14,9 +14,9 @@ messages:
         destination: "{id}"
         message:
             rfid:
-                timestamp: 42
-                status: "ON"
-                rfid: 123456
+                - timestamp: 42
+                  status: 1
+                  rfid: "123456"
 
 sockets:
     - !SocketSubscribe &subscribe
