@@ -233,6 +233,49 @@ class CaptureTest(unittest.TestCase):
             expected = Exception("Invalid message type: " + fake_message_type)
             assert_equal(repr(expected), repr(exception))
 
+    @staticmethod
+    def test_create_from_zmq_with_list():
+        destination = "fake_id"
+        playing = '"false"'
+        seconds = 42
+        yaml_content = """
+message: !CaptureGameState
+    destination: "{destination}"
+    message:
+        playing: {playing}
+        seconds: {seconds}
+        teams:
+            - name: "{{looser_team}}"
+              score: 0
+              num_players: 2
+              players:
+                  - "looser_robot 1"
+                  - "looser_robot 2"
+            - name: "{{winner_team}}"
+              score: 0
+              num_players: 2
+              players:
+                  - "winner_robot 1"
+                  - "{{winner_robot_two}}"
+""".format(
+            destination=destination,
+            playing=playing,
+            seconds=seconds)
+        data = yaml.load(yaml_content)
+        message = data["message"]
+        looser_team = "Loosers"
+        winner_team = "Winners"
+        winner_robot_two = "winner robot 2"
+        zmq_message = message.encode_zmq_message(
+            {'looser_team': looser_team,
+             'winner_team': winner_team,
+             'winner_robot_two': winner_robot_two})
+        capture = y2p.Capture.create_from_zmq(zmq_message)
+        pb_message = dict2pb(pb_server_game.GameState, capture.message)
+        assert_equal(pb_message.teams[0].name, looser_team)
+        assert_equal(pb_message.teams[1].name, winner_team)
+        assert_equal(pb_message.teams[1].players[1], winner_robot_two)
+
 
 def test_generate():
     y2p.generate()
