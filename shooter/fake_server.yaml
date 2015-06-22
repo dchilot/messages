@@ -33,21 +33,30 @@ messages:
                   players:
                       - "looser_robot"
             winner: ""
+    - input: !CaptureInput &input
+       destination: "{id}"
+       message:
+           move:
+              left: 10
+              right: 0
+           fire:
+              weapon1: "{weapon1}"
+              weapon2: "{weapon2}"
 
 sockets:
-    - !SocketSubscribe &subscribe
-        port: 9000
-        bind: no
-    - !SocketPush &push
+    - !SocketPull &pull
         port: 9001
-        bind: no
+        bind: yes
+    - !SocketPublish &publish
+        port: 9000
+        bind: yes
 
 threads:
     - !Thread
         name: "fake server"
         loop: False
-        in_socket: *subscribe
-        out_socket: *push
+        in_socket: *pull
+        out_socket: *publish
         flow:
             - !In
                 message: *register
@@ -60,7 +69,12 @@ threads:
                 arguments:
                     id: "looser_robot"
             - !Out
+                message: *input
+                arguments:
+                    id: "looser_robot"
+                    weapon1: "True"
+                    weapon2: "False"
+            - !Out
                 message: *game_state_stop
                 arguments:
                     id: "looser_robot"
-

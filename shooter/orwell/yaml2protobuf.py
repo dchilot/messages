@@ -124,7 +124,7 @@ class Capture(object):
 
     @staticmethod
     def create_from_zmq(zmq_message):
-        destination, message_type, payload = zmq_message.split(' ', 3)
+        destination, message_type, payload = zmq_message.split(' ', 2)
         found = False
         for module in (
                 orwell.messages.controller_pb2,
@@ -217,7 +217,10 @@ class Capture(object):
             differences.append(
                 ("@destination", self.destination, other.destination))
         for key, reference_value in self.key_map.items():
-            other_value = other.key_map[key]
+            try:
+                other_value = other.key_map[key]
+            except:
+                other_value = None
             if (reference_value != other_value):
                 if ((isinstance(reference_value, str)) and
                         (Base.CAPTURE_PATTERN.match(reference_value))):
@@ -232,53 +235,142 @@ class Capture(object):
         print(self.captured)
         return differences
 
+    def _compute_bool(self, value):
+        return (value not in ("False", "false", 0))
+
+    def _fill_list(
+            self,
+            translation_dico,
+            key,
+            value,
+            destination_dico,
+            descriptor,
+            new_descriptor):
+        new_element = []
+        if (isinstance(destination_dico, dict)):
+            destination_dico[key] = new_element
+        elif (isinstance(destination_dico, list)):
+            destination_dico.append(new_element)
+        for sub_value in value:
+            self._fill_one(
+                translation_dico,
+                new_descriptor.name,
+                sub_value,
+                new_element,
+                descriptor)
+
+    def _fill_dict(
+            self,
+            translation_dico,
+            key,
+            value,
+            destination_dico,
+            descriptor,
+            new_descriptor):
+        new_element = {}
+        if (isinstance(destination_dico, dict)):
+            destination_dico[key] = new_element
+        elif (isinstance(destination_dico, list)):
+            destination_dico.append(new_element)
+        self._fill(
+            translation_dico,
+            value,
+            new_element,
+            new_descriptor)
+
+    def _fill_value(
+            self,
+            translation_dico,
+            key,
+            value,
+            destination_dico,
+            descriptor,
+            new_descriptor):
+        if (isinstance(value, str)):
+            value = value.format(**translation_dico)
+        if (new_descriptor.type in
+                (pb_descriptor.FieldDescriptor.TYPE_DOUBLE,
+                 pb_descriptor.FieldDescriptor.TYPE_FLOAT)):
+            value = float(value)
+        elif (new_descriptor.type in
+                (pb_descriptor.FieldDescriptor.TYPE_INT32,
+                 pb_descriptor.FieldDescriptor.TYPE_SINT32,
+                 pb_descriptor.FieldDescriptor.TYPE_UINT32,
+                 pb_descriptor.FieldDescriptor.TYPE_FIXED32,
+                 pb_descriptor.FieldDescriptor.TYPE_SFIXED32,
+                 pb_descriptor.FieldDescriptor.TYPE_INT64,
+                 pb_descriptor.FieldDescriptor.TYPE_SINT64,
+                 pb_descriptor.FieldDescriptor.TYPE_UINT64,
+                 pb_descriptor.FieldDescriptor.TYPE_FIXED64,
+                 pb_descriptor.FieldDescriptor.TYPE_SFIXED64,
+                 pb_descriptor.FieldDescriptor.TYPE_ENUM)):
+            value = int(value)
+        elif (pb_descriptor.FieldDescriptor.TYPE_BOOL
+                == new_descriptor.type):
+            value = self._compute_bool(value)
+        if (isinstance(destination_dico, dict)):
+            destination_dico[key] = value
+        elif (isinstance(destination_dico, list)):
+            destination_dico.append(value)
+
+    def _fill_one(
+            self,
+            translation_dico,
+            key,
+            value,
+            destination_dico,
+            descriptor):
+        if (isinstance(descriptor, pb_descriptor.Descriptor)):
+            new_descriptor = descriptor.fields_by_name[key]
+        else:
+            new_descriptor = descriptor.message_type.fields_by_name[key]
+        if (isinstance(value, list)):
+            self._fill_list(
+                translation_dico,
+                key,
+                value,
+                destination_dico,
+                descriptor,
+                new_descriptor)
+        elif (isinstance(value, dict)):
+            self._fill_dict(
+                translation_dico,
+                key,
+                value,
+                destination_dico,
+                descriptor,
+                new_descriptor)
+        else:
+            self._fill_value(
+                translation_dico,
+                key,
+                value,
+                destination_dico,
+                descriptor,
+                new_descriptor)
+
+    def _fill(
+            self,
+            translation_dico,
+            source_dico,
+            destination_dico,
+            descriptor):
+        for key, value in source_dico.items():
+            self._fill_one(
+                translation_dico,
+                key,
+                value,
+                destination_dico,
+                descriptor)
+
     def fill(self, dico):
         expanded_dico = {}
         sys.stderr.write("++ self.message %s\n" % (self.message))
-        stack = [(self.message, expanded_dico, self.PROTOBUF_CLASS.DESCRIPTOR)]
-        while (stack):
-            current_dico, current_expanded_dico, current_descriptor = \
-                stack.pop()
-            for key, value in current_dico.items():
-                sys.stderr.write("-- key={0};value={1} ; {2}\n".format(
-                    key, value, current_descriptor))
-                if (isinstance(current_descriptor, pb_descriptor.Descriptor)):
-                    descriptor = current_descriptor.fields_by_name[key]
-                else:
-                    descriptor = current_descriptor\
-                        .message_type.fields_by_name[key]
-                if (isinstance(value, dict)):
-                    current_expanded_dico[key] = {}
-                    stack.append(
-                        (value, current_expanded_dico[key], descriptor))
-                else:
-                    #for field in current_descriptor.fields:
-                        #if (field.name == key):
-                            #descriptor = field
-                            #break
-                    if (isinstance(value, str)):
-                        value = value.format(**dico)
-                    if (descriptor.type in
-                            (pb_descriptor.FieldDescriptor.TYPE_DOUBLE,
-                             pb_descriptor.FieldDescriptor.TYPE_FLOAT)):
-                        value = float(value)
-                    elif (descriptor.type in
-                            (pb_descriptor.FieldDescriptor.TYPE_INT32,
-                             pb_descriptor.FieldDescriptor.TYPE_SINT32,
-                             pb_descriptor.FieldDescriptor.TYPE_UINT32,
-                             pb_descriptor.FieldDescriptor.TYPE_FIXED32,
-                             pb_descriptor.FieldDescriptor.TYPE_SFIXED32,
-                             pb_descriptor.FieldDescriptor.TYPE_INT64,
-                             pb_descriptor.FieldDescriptor.TYPE_SINT64,
-                             pb_descriptor.FieldDescriptor.TYPE_UINT64,
-                             pb_descriptor.FieldDescriptor.TYPE_FIXED64,
-                             pb_descriptor.FieldDescriptor.TYPE_SFIXED64,
-                             pb_descriptor.FieldDescriptor.TYPE_ENUM)):
-                        value = int(value)
-                    elif (pb_descriptor.FieldDescriptor.TYPE_BOOL
-                            == descriptor.type):
-                        value = bool(value)
-                    current_expanded_dico[key] = value
+        self._fill(
+            dico,
+            self.message,
+            expanded_dico,
+            self.PROTOBUF_CLASS.DESCRIPTOR)
         return dict2pb(self.PROTOBUF_CLASS, expanded_dico)
 
 

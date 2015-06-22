@@ -19,17 +19,17 @@ messages:
                   rfid: "123456"
 
 sockets:
-    - !SocketSubscribe &subscribe
-        port: 9000
-        bind: no
     - !SocketPush &push
         port: 9001
+        bind: no
+    - !SocketSubscribe &subscribe
+        port: 9000
         bind: no
 
 threads:
     - !Thread
         name: "fake proxy"
-        loop: False
+        loop: True
         in_socket: *subscribe
         out_socket: *push
         flow:

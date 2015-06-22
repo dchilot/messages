@@ -22,14 +22,27 @@ class Socket(object):
             address = getattr(self, 'address', "127.0.0.1")
         return "%s://%s:%i" % (protocol, address, self.port)
 
+    @property
+    def mode(self):
+        if (zmq.PUSH == self.zmq_method):
+            return "push"
+        if (zmq.PULL == self.zmq_method):
+            return "pull"
+        if (zmq.PUB == self.zmq_method):
+            return "publish"
+        if (zmq.SUB == self.zmq_method):
+            return "subsccribe"
+
     def build(self, zmq_context):
         bind = getattr(self, 'bind', False)
         self.bind = bind
         self._zmq_socket = zmq_context.socket(self.zmq_method)
         self._zmq_socket.setsockopt(zmq.LINGER, 1)
         if (bind):
+            print "Bind on " + self.connection_string + " " + self.mode
             self._zmq_socket.bind(self.connection_string)
         else:
+            print "Connect to " + self.connection_string + " " + self.mode
             self._zmq_socket.connect(self.connection_string)
 
     def __repr__(self):
@@ -97,6 +110,21 @@ class SocketSubscribe(yaml.YAMLObject, Socket):
             return self._zmq_socket.recv(*args, **kwargs)
         else:
             return None
+
+
+class SocketPublish(yaml.YAMLObject, Socket):
+
+    """To be used in YAML.
+
+    Wrapper for zmq publish socket.
+    """
+
+    yaml_tag = u'!SocketPublish'
+    zmq_method = zmq.PUB
+
+    def send(self, data):
+        print("SocketPublish.send({})".format(repr(data)))
+        self._zmq_socket.send(data)
 
 
 class ExchangeMetaClass(type):
@@ -252,7 +280,10 @@ class CaptureConverter(object):
         for dico in capture_list:
             for key, value in dico.items():
                 if (key in self._values):
-                    raise Exception("Duplicate key: '" + key + "'")
+                    #raise Exception("Duplicate key: '" + key + "'")
+                    # we reuse the same object when we loop
+                    # @TODO: possibly clear the object
+                    pass
                 self._values[key] = value
 
     def __getattribute__(self, attribute):

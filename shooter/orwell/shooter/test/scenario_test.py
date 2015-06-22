@@ -90,7 +90,7 @@ threads:
             scenario.step()
             try:
                 # make sure we move to the step receiving the message
-                for i in range(5):
+                for i in range(50):
                     scenario.step()
                 thrown = False
                 sys.stdout.write("No exception raised.\n")
@@ -166,10 +166,10 @@ class CaptureRepositoryTest(unittest.TestCase):
 
 
 def main():
-    ScenarioTest.test_1()
+    #ScenarioTest.test_1()
     ScenarioTest.test_2()
-    ScenarioTest.test_3()
-    CaptureRepositoryTest.test_1()
+    #ScenarioTest.test_3()
+    #CaptureRepositoryTest.test_1()
 
 if ("__main__" == __name__):
     main()
