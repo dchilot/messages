@@ -1,0 +1,88 @@
+messages:
+    - register: !CaptureRegister &register
+        destination: "{temp_id}"
+        message:
+            temporary_robot_id: "{temp_id}"
+            video_url: http://video.url:123
+            image: this is an image of the robot
+    - registered: !CaptureRegistered &registered
+        destination: "{temp_id}"
+        message:
+            robot_id: "{true_id}"
+            team: "{true_team}"
+    - hello: !CaptureHello &hello
+        destination: TEST1
+        message:
+            name: Player
+    - welcome: !CaptureWelcome &welcome
+        destination: "{id}"
+        message:
+            robot: "Small Robot"
+            team: team_red
+            id: "{id}"
+            video_address: "http://video.url"
+            video_port: 123
+    - robot_state: !CaptureServerRobotState &robot_state
+        destination: "{true_id}"
+        message:
+            rfid:
+                - timestamp: 4142434445
+                  status: "{status}"
+                  rfid: "941507281030"
+
+sockets:
+    - !SocketSubscribe &subscribe_socket
+        port: 9000
+    - !SocketPush &push_socket
+        port: 9001
+
+threads:
+    - !Thread
+        name: "Register and send RobotState to capture a Flag"
+        loop: False
+        in_socket: *subscribe_socket
+        out_socket: *push_socket
+        flow:
+            - !Out
+                message: *register
+                arguments:
+                    temp_id: "123"
+            - !In
+                message: *registered
+            - !Equal
+                values:
+                    - "robot_one"
+                    - "{Registered[-1].true_id}"
+            #- !UserInput
+                #text: "About to send Hello message"
+            - !Out
+                message: *hello
+            - !In
+                message: *welcome
+            - !UserInput
+                text: "About to send ServerRobotState messages (with failed capture)"
+            - !Sleep
+                seconds: 2
+            - !Out
+                message: *robot_state
+                arguments:
+                    #true_id: "robot_one"
+                    true_id: "{Registered[-1].true_id}"
+                    status: 1
+            - !Sleep
+                seconds: 1
+            - !Out
+                message: *robot_state
+                arguments:
+                    true_id: "{Registered[-1].true_id}"
+                    status: 2
+            - !UserInput
+                text: "About to send ServerRobotState messages (with successful capture)"
+            - !Sleep
+                seconds: 2
+            - !Out
+                message: *robot_state
+                arguments:
+                    #true_id: "robot_one"
+                    true_id: "{Registered[-1].true_id}"
+                    status: 1

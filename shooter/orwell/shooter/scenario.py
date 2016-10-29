@@ -3,15 +3,16 @@ import yaml
 import zmq
 import collections
 import re
+import time
 
 
 class Socket(object):
-
     """Base class for zmq socket wrappers.
 
     This should not be instantiated but contains some methods common to
     the derived classes.
     """
+
     @property
     def connection_string(self):
         bind = getattr(self, 'bind', False)
@@ -57,7 +58,6 @@ class Socket(object):
 
 
 class SocketPull(yaml.YAMLObject, Socket):
-
     """To be used in YAML.
 
     Wrapper for zmq pull socket.
@@ -90,7 +90,6 @@ class SocketPush(yaml.YAMLObject, Socket):
 
 
 class SocketSubscribe(yaml.YAMLObject, Socket):
-
     """To be used in YAML.
 
     Wrapper for zmq sub socket.
@@ -113,7 +112,6 @@ class SocketSubscribe(yaml.YAMLObject, Socket):
 
 
 class SocketPublish(yaml.YAMLObject, Socket):
-
     """To be used in YAML.
 
     Wrapper for zmq publish socket.
@@ -128,7 +126,6 @@ class SocketPublish(yaml.YAMLObject, Socket):
 
 
 class ExchangeMetaClass(type):
-
     """Metaclass to combine YAMLObject and base class Exchange.
 
     adapted from http://stackoverflow.com/a/12144823/3552528
@@ -160,7 +157,6 @@ class ExchangeMetaClass(type):
 
 
 class Exchange(object):
-
     """Base class for exchanges which are about sending or receiving messages.
 
     This should not be instantiated but contains some methods common to
@@ -180,7 +176,6 @@ class Exchange(object):
 
 
 class In(yaml.YAMLObject, Exchange):
-
     """To be used in YAML.
 
     Class to receive messages in a thread.
@@ -205,7 +200,6 @@ class In(yaml.YAMLObject, Exchange):
 
 
 class Out(yaml.YAMLObject, Exchange):
-
     """To be used in YAML.
 
     Class to send messages in a thread.
@@ -230,7 +224,6 @@ class Out(yaml.YAMLObject, Exchange):
 
 
 class Equal(yaml.YAMLObject):
-
     """To be used in YAML.
 
     Class to assert that some given values are equal.
@@ -265,7 +258,6 @@ class Equal(yaml.YAMLObject):
 
 
 class CaptureConverter(object):
-
     """Converts the format of yaml2protobuf.CaptureXXX.captured.
 
     The only used should be in CaptureRepository to have an easy syntax to
@@ -295,7 +287,6 @@ class CaptureConverter(object):
 
 
 class CaptureRepository(object):
-
     """Deals with values extracted from captures in received messages.
 
     Warning: there is an unsafe eval performed.
@@ -313,7 +304,10 @@ class CaptureRepository(object):
             capture_converter)
 
     def expand(self, string):
-        if (CaptureRepository.eval_regexp.match(string)):
+        # print("string = '" + repr(string) + "'")
+        # print("type(string) = '" + str(type(string)) + "'")
+        if ((isinstance(string, str)) and
+                (CaptureRepository.eval_regexp.match(string))):
             string_without_brackets = string[1:-1]
             value = str(eval(
                 string_without_brackets,
@@ -324,7 +318,6 @@ class CaptureRepository(object):
 
 
 class Thread(yaml.YAMLObject):
-
     """To be used in YAML.
 
     Class to describe a succession of steps to be executed in sequence.
@@ -379,8 +372,7 @@ class Thread(yaml.YAMLObject):
 
 
 class Scenario(object):
-
-    """This is what clients of this module need to use.
+    """Class that the clients of this module need to use in their code.
 
     The other classes are only helping build a scenario in YAML which is
     wrapped by this class.
@@ -408,7 +400,7 @@ class Scenario(object):
 
     @property
     def has_more_steps(self):
-        return all((thread.has_more_steps for thread in self._threads))
+        return any((thread.has_more_steps for thread in self._threads))
 
     def __enter__(self):
         return self
@@ -420,3 +412,43 @@ class Scenario(object):
         for thread in self._threads:
             thread.terminate()
         self._zmq_context.term()
+
+
+class Sleep(yaml.YAMLObject):
+    """To be used in YAML.
+
+    Class to sleep for a given amount of seconds.
+    """
+
+    yaml_tag = u'!Sleep'
+
+    def build(self, repository, in_socket, out_socket):
+        pass
+
+    def step(self, *args):
+        print("Sleep.step")
+        time.sleep(self.seconds)
+        return (None, True)
+
+    def __repr__(self):
+        return "{Sleep | %ss}" % str(self.seconds)
+
+
+class UserInput(yaml.YAMLObject):
+    """To be used in YAML.
+
+    Class to wait until the user provide some input.
+    """
+
+    yaml_tag = u'!UserInput'
+
+    def build(self, repository, in_socket, out_socket):
+        pass
+
+    def step(self, *args):
+        print("UserInput.step")
+        raw_input(self.text)
+        return (None, True)
+
+    def __repr__(self):
+        return "{UserInput}"

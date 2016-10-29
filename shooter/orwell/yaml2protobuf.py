@@ -543,6 +543,18 @@ class CaptureAccess(yaml.YAMLObject, Capture):
     message_type = 'Access'
 
 
+class Coordinates(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Coordinates
+    yaml_tag = u'!Coordinates'
+
+
+class CaptureCoordinates(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Coordinates
+    yaml_tag = u'!CaptureCoordinates'
+    message_type = 'Coordinates'
+
+
 class GameState(yaml.YAMLObject, Base):
     __metaclass__ = CustomMetaClass
     PROTOBUF_CLASS = orwell.messages.server_game_pb2.GameState
@@ -565,6 +577,54 @@ class CaptureGoodbye(yaml.YAMLObject, Capture):
     PROTOBUF_CLASS = orwell.messages.server_game_pb2.Goodbye
     yaml_tag = u'!CaptureGoodbye'
     message_type = 'Goodbye'
+
+
+class Item(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Item
+    yaml_tag = u'!Item'
+
+
+class CaptureItem(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Item
+    yaml_tag = u'!CaptureItem'
+    message_type = 'Item'
+
+
+class Landmark(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Landmark
+    yaml_tag = u'!Landmark'
+
+
+class CaptureLandmark(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.Landmark
+    yaml_tag = u'!CaptureLandmark'
+    message_type = 'Landmark'
+
+
+class PlayerState(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.PlayerState
+    yaml_tag = u'!PlayerState'
+
+
+class CapturePlayerState(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.PlayerState
+    yaml_tag = u'!CapturePlayerState'
+    message_type = 'PlayerState'
+
+
+class RGBColour(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.RGBColour
+    yaml_tag = u'!RGBColour'
+
+
+class CaptureRGBColour(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = orwell.messages.server_game_pb2.RGBColour
+    yaml_tag = u'!CaptureRGBColour'
+    message_type = 'RGBColour'
 
 
 class Registered(yaml.YAMLObject, Base):

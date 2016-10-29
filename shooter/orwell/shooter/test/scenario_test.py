@@ -11,7 +11,7 @@ messages:
     - hello: !CaptureHello &hello
         destination: TEST1
         message:
-            name: Player
+            name: "{player_name}"
     - welcome: !CaptureWelcome &welcome
         destination: "{id}"
         message:
@@ -19,7 +19,7 @@ messages:
             team: One
             id: "{id}"
             video_address: "http://fake.com"
-            video_port: 42
+            video_port: "{video_port}"
 
 sockets:
     - !SocketPull &pull_a
@@ -42,10 +42,15 @@ threads:
         flow:
             - !In
                 message: *hello
+            - !Equal
+                values:
+                    - "Player"
+                    - "{Hello[-1].player_name}"
             - !Out
                 message: *welcome
                 arguments:
                     id: '%welcome_id%'
+                    video_port: 42
     - !Thread
         name: "fake client"
         loop: False
@@ -54,12 +59,18 @@ threads:
         flow:
             - !Out
                 message: *hello
+                arguments:
+                    player_name: "Player"
             - !In
                 message: *welcome
             - !Equal
                 values:
                     - '%expected_welcome_id%'
                     - "{Welcome[-1].id}"
+            - !Equal
+                values:
+                    - "42"
+                    - "{Welcome[-1].video_port}"
 """
 
     @staticmethod
@@ -166,8 +177,8 @@ class CaptureRepositoryTest(unittest.TestCase):
 
 
 def main():
-    #ScenarioTest.test_1()
-    ScenarioTest.test_2()
+    ScenarioTest.test_1()
+    # ScenarioTest.test_2()
     #ScenarioTest.test_3()
     #CaptureRepositoryTest.test_1()
 
