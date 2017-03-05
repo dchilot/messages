@@ -259,7 +259,7 @@ def test_server_robot_state():
     assert(message2.battery.voltageMilliVolt == battery_event_voltageMilliVolt)
     assertAlmostEqual(message2.battery.batteryCurrentAmps,
                       battery_event_batteryCurrentAmps)
-    assert(message2.battery.motorCurrentAmps, battery_event_motorCurrentAmps)
+    assert(message2.battery.motorCurrentAmps == battery_event_motorCurrentAmps)
 
 
 def test_server_robot_state_2():
@@ -276,7 +276,7 @@ def test_server_robot_state_2():
     message2 = pb_robot.ServerRobotState()
     message2.ParseFromString(payload)
 
-    assert(message2.ultrasound.ultrasound, us_event_ultrasound)
+    assert(message2.ultrasound.ultrasound == us_event_ultrasound)
 
 
 def assertAlmostEqual(float1, float2):
