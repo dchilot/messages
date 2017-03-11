@@ -3,7 +3,6 @@ import orwell.messages.robot_pb2 as pb_robot
 import orwell.messages.server_game_pb2 as pb_server_game
 import orwell.messages.server_web_pb2 as pb_server_web
 
-
 # server-game
 
 
@@ -28,6 +27,7 @@ def test_game_state():
     message = pb_server_game.GameState()
     message.playing = True
     message.seconds = 42
+    message.total_seconds = 60
     message.winner = "team_banana"
     landmark1 = message.map_limits.add()
     landmark1.position.x = 1
@@ -54,6 +54,7 @@ def test_welcome(use_optional):
     robot_id = "84"
     playing = True
     seconds = 123456
+    total_seconds = 200000
     blu_name = "Cage"
     blu_score = 987
     blu_num = 3
@@ -67,6 +68,7 @@ def test_welcome(use_optional):
     if (use_optional):
         message.game_state.playing = playing
         message.game_state.seconds = seconds
+        message.game_state.total_seconds = total_seconds
         team_blu = message.game_state.teams.add()
         team_blu.score = blu_score
         team_blu.name = blu_name
@@ -86,6 +88,7 @@ def test_welcome(use_optional):
     if (use_optional):
         assert(message2.game_state.playing == playing)
         assert(message2.game_state.seconds == seconds)
+        assert(message2.game_state.total_seconds == total_seconds)
         assert(message2.game_state.teams[0].score == blu_score)
         assert(message2.game_state.teams[0].num_players == blu_num)
         assert(message2.game_state.teams[0].name == blu_name)
@@ -95,6 +98,7 @@ def test_welcome(use_optional):
     else:
         assert(not message2.game_state.playing)
         assert(message2.game_state.seconds == 0)
+        assert(message2.game_state.total_seconds == 0)
         assert(len(message2.game_state.teams) == 0)
     assert(message2.id == robot_id)
     assert(message.video_address == video_address)
@@ -152,11 +156,11 @@ def test_player_state():
     item = pb_server_game.Item()
     item_type = pb_server_game.FLAG
     item_name = "Flag"
-    item_caputre_status = pb_server_game.FAILED
+    item_capture_status = pb_server_game.FAILED
     item_owner = "team_red"
     item.type = item_type
     item.name = item_name
-    item.capture_status = item_caputre_status
+    item.capture_status = item_capture_status
     item.owner = item_owner
     item_position = pb_server_game.Coordinates()
     item_position_x = 4
@@ -165,7 +169,7 @@ def test_player_state():
     item_position.y = item_position_y
     item_active = False
     item.active = item_active
-    item.capturer = "team_name"
+    item.capturer = 'Enemy'
     message.item = item
     payload = message.SerializeToString()
     message2 = pb_server_game.Registered()
@@ -201,6 +205,8 @@ def test_server_robot_state():
     rfid_event1 = message.rfid.add()
     rfid_event2 = message.rfid.add()
     colour_event = message.colour.add()
+    us_event = message.ultrasound
+    battery_event = message.battery
 
     rfid_event1_timestamp = 1416757954
     rfid_event1_rfid = "myrfid"
@@ -223,6 +229,20 @@ def test_server_robot_state():
     colour_event.colour = colour_event_colour
     colour_event.status = colour_event_status
 
+    us_event_timestamp = 1416757956
+    us_event_ultrasound = 12.15
+    us_event.timestamp = us_event_timestamp
+    us_event.ultrasound = us_event_ultrasound
+
+    battery_event_timestamp = 1416787957
+    battery_event_voltageMilliVolt = 7854
+    battery_event_batteryCurrentAmps = 2.1
+    battery_event_motorCurrentAmps = 1.5
+    battery_event.timestamp = battery_event_timestamp
+    battery_event.voltageMilliVolt = battery_event_voltageMilliVolt
+    battery_event.batteryCurrentAmps = battery_event_batteryCurrentAmps
+    battery_event.motorCurrentAmps = battery_event_motorCurrentAmps
+
     payload = message.SerializeToString()
     message2 = pb_robot.ServerRobotState()
     message2.ParseFromString(payload)
@@ -238,7 +258,34 @@ def test_server_robot_state():
     assert(message2.colour[0].timestamp == colour_event_timestamp)
     assert(message2.colour[0].status == colour_event_status)
     assert(message2.colour[0].colour == colour_event_colour)
+    assert(message2.ultrasound.timestamp == us_event_timestamp)
+    assertAlmostEqual(message2.ultrasound.ultrasound, us_event_ultrasound)
+    assert(message2.battery.timestamp == battery_event_timestamp)
+    assert(message2.battery.voltageMilliVolt == battery_event_voltageMilliVolt)
+    assertAlmostEqual(message2.battery.batteryCurrentAmps,
+                      battery_event_batteryCurrentAmps)
+    assert(message2.battery.motorCurrentAmps == battery_event_motorCurrentAmps)
 
+
+def test_server_robot_state_2():
+    message = pb_robot.ServerRobotState()
+
+    us_event = message.ultrasound
+
+    us_event_timestamp = 1416757956
+    us_event_ultrasound = float("Infinity")
+    us_event.timestamp = us_event_timestamp
+    us_event.ultrasound = us_event_ultrasound
+
+    payload = message.SerializeToString()
+    message2 = pb_robot.ServerRobotState()
+    message2.ParseFromString(payload)
+
+    assert(message2.ultrasound.ultrasound == us_event_ultrasound)
+
+
+def assertAlmostEqual(float1, float2):
+    return abs(float1 - float2) < 1E-6
 
 
 def test_register():
@@ -301,6 +348,7 @@ def main():
     test_get_game_state()
     # robot
     test_server_robot_state()
+    test_server_robot_state_2()
     test_register()
     # controller
     test_hello()
