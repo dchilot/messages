@@ -5,7 +5,7 @@ do_generate()
 	mkdir -p orwell/messages
 	base="$(dirname "$PWD")"
 	for pb in "$base/orwell/messages/"*.py ; do
-		ln -s "$pb" orwell/messages/
+		ln -nfs "$pb" orwell/messages/
 	done
 }
 

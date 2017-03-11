@@ -1,3 +1,4 @@
 [submodule "shooter/pbjson"]
 	path = shooter/pbjson
 	url = https://github.com/NextTuesday/py-pb-converters.git
+	ignore = untracked

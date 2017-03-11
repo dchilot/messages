@@ -3,7 +3,7 @@ messages:
         destination: "{temp_id}"
         message:
             temporary_robot_id: "{temp_id}"
-            video_url: http://video.url:123
+            video_url: nc:127.0.0.1:9011
             image: this is an image of the robot
     - registered: !CaptureRegistered &registered
         destination: "{temp_id}"
@@ -28,7 +28,7 @@ messages:
             rfid:
                 - timestamp: 4142434445
                   status: "{status}"
-                  rfid: "941507281030"
+                  colour: "3"
 
 sockets:
     - !SocketSubscribe &subscribe_socket
@@ -53,8 +53,8 @@ threads:
                 values:
                     - "robot_one"
                     - "{Registered[-1].true_id}"
-            #- !UserInput
-                #text: "About to send Hello message"
+            - !UserInput
+                text: "About to send Hello message"
             - !Out
                 message: *hello
             - !In
