@@ -25,10 +25,10 @@ messages:
     - robot_state: !CaptureServerRobotState &robot_state
         destination: "{true_id}"
         message:
-            rfid:
+            colour:
                 - timestamp: 4142434445
                   status: "{status}"
-                  colour: "3"
+                  colour: "{colour}"
 
 sockets:
     - !SocketSubscribe &subscribe_socket
@@ -66,16 +66,23 @@ threads:
             - !Out
                 message: *robot_state
                 arguments:
-                    #true_id: "robot_one"
                     true_id: "{Registered[-1].true_id}"
                     status: 1
+                    colour: 1 # frontier
+            - !Out
+                message: *robot_state
+                arguments:
+                    true_id: "{Registered[-1].true_id}"
+                    status: 1
+                    colour: 3 # blue
             - !Sleep
                 seconds: 1
             - !Out
                 message: *robot_state
                 arguments:
                     true_id: "{Registered[-1].true_id}"
-                    status: 2
+                    status: 1
+                    colour: 1 # frontier
             - !UserInput
                 text: "About to send ServerRobotState messages (with successful capture)"
             - !Sleep
@@ -83,6 +90,6 @@ threads:
             - !Out
                 message: *robot_state
                 arguments:
-                    #true_id: "robot_one"
                     true_id: "{Registered[-1].true_id}"
                     status: 1
+                    colour: 3 # blue

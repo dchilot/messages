@@ -435,18 +435,6 @@ cog.outl(generate())
 # ]]] """
 
 
-class Fire(yaml.YAMLObject, Base):
-    __metaclass__ = CustomMetaClass
-    PROTOBUF_CLASS = orwell.messages.controller_pb2.Fire
-    yaml_tag = u'!Fire'
-
-
-class CaptureFire(yaml.YAMLObject, Capture):
-    PROTOBUF_CLASS = orwell.messages.controller_pb2.Fire
-    yaml_tag = u'!CaptureFire'
-    message_type = 'Fire'
-
-
 class Hello(yaml.YAMLObject, Base):
     __metaclass__ = CustomMetaClass
     PROTOBUF_CLASS = orwell.messages.controller_pb2.Hello
@@ -471,16 +459,16 @@ class CaptureInput(yaml.YAMLObject, Capture):
     message_type = 'Input'
 
 
-class Move(yaml.YAMLObject, Base):
+class Battery(yaml.YAMLObject, Base):
     __metaclass__ = CustomMetaClass
-    PROTOBUF_CLASS = orwell.messages.controller_pb2.Move
-    yaml_tag = u'!Move'
+    PROTOBUF_CLASS = orwell.messages.robot_pb2.Battery
+    yaml_tag = u'!Battery'
 
 
-class CaptureMove(yaml.YAMLObject, Capture):
-    PROTOBUF_CLASS = orwell.messages.controller_pb2.Move
-    yaml_tag = u'!CaptureMove'
-    message_type = 'Move'
+class CaptureBattery(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = orwell.messages.robot_pb2.Battery
+    yaml_tag = u'!CaptureBattery'
+    message_type = 'Battery'
 
 
 class Colour(yaml.YAMLObject, Base):
@@ -529,6 +517,18 @@ class CaptureServerRobotState(yaml.YAMLObject, Capture):
     PROTOBUF_CLASS = orwell.messages.robot_pb2.ServerRobotState
     yaml_tag = u'!CaptureServerRobotState'
     message_type = 'ServerRobotState'
+
+
+class Ultrasound(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.robot_pb2.Ultrasound
+    yaml_tag = u'!Ultrasound'
+
+
+class CaptureUltrasound(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = orwell.messages.robot_pb2.Ultrasound
+    yaml_tag = u'!CaptureUltrasound'
+    message_type = 'Ultrasound'
 
 
 class Access(yaml.YAMLObject, Base):
