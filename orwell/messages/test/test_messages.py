@@ -2,6 +2,7 @@ import orwell.messages.controller_pb2 as pb_controller
 import orwell.messages.robot_pb2 as pb_robot
 import orwell.messages.server_game_pb2 as pb_server_game
 import orwell.messages.server_web_pb2 as pb_server_web
+import orwell.messages.common_pb2 as pb_common
 
 # server-game
 
@@ -152,8 +153,8 @@ def test_registered():
 
 
 def test_player_state():
-    message = pb_server_game.PlaterState()
-    item = pb_server_game.Item()
+    message = pb_server_game.PlayerState()
+    item = message.item
     item_type = pb_server_game.FLAG
     item_name = "Flag"
     item_capture_status = pb_server_game.FAILED
@@ -162,7 +163,7 @@ def test_player_state():
     item.name = item_name
     item.capture_status = item_capture_status
     item.owner = item_owner
-    item_position = pb_server_game.Coordinates()
+    item_position = item.position
     item_position_x = 4
     item_position_y = 2
     item_position.x = item_position_x
@@ -170,11 +171,19 @@ def test_player_state():
     item_active = False
     item.active = item_active
     item.capturer = 'Enemy'
-    message.item = item
+    # not testing again those (tested in ServerRobotState
+    assert(isinstance(message.ultrasound, pb_common.Ultrasound))
+    assert(isinstance(message.battery, pb_common.Battery))
     payload = message.SerializeToString()
-    message2 = pb_server_game.Registered()
+    message2 = pb_server_game.PlayerState()
     message2.ParseFromString(payload)
-    assert(message2 == message)
+    assert(message2.item.type == message.item.type)
+    assert(message2.item.name == message.item.name)
+    assert(message2.item.owner == message.item.owner)
+    assert(message2.item.capture_status == message.item.capture_status)
+    assert(message2.item.active == message.item.active)
+    assert(message2.item.position.x == message.item.position.x)
+    assert(message2.item.position.y == message.item.position.y)
 
 
 # server-web
@@ -230,18 +239,16 @@ def test_server_robot_state():
     colour_event.status = colour_event_status
 
     us_event_timestamp = 1416757956
-    us_event_ultrasound = 12.15
+    us_event_ultrasound = 125
     us_event.timestamp = us_event_timestamp
     us_event.ultrasound = us_event_ultrasound
 
     battery_event_timestamp = 1416787957
     battery_event_voltageMilliVolt = 7854
-    battery_event_batteryCurrentAmps = 2.1
-    battery_event_motorCurrentAmps = 1.5
+    battery_event_currentAmp = 2.1
     battery_event.timestamp = battery_event_timestamp
     battery_event.voltageMilliVolt = battery_event_voltageMilliVolt
-    battery_event.batteryCurrentAmps = battery_event_batteryCurrentAmps
-    battery_event.motorCurrentAmps = battery_event_motorCurrentAmps
+    battery_event.currentAmp = battery_event_currentAmp
 
     payload = message.SerializeToString()
     message2 = pb_robot.ServerRobotState()
@@ -259,12 +266,11 @@ def test_server_robot_state():
     assert(message2.colour[0].status == colour_event_status)
     assert(message2.colour[0].colour == colour_event_colour)
     assert(message2.ultrasound.timestamp == us_event_timestamp)
-    assertAlmostEqual(message2.ultrasound.ultrasound, us_event_ultrasound)
+    assert(message2.ultrasound.ultrasound == us_event_ultrasound)
     assert(message2.battery.timestamp == battery_event_timestamp)
     assert(message2.battery.voltageMilliVolt == battery_event_voltageMilliVolt)
-    assertAlmostEqual(message2.battery.batteryCurrentAmps,
-                      battery_event_batteryCurrentAmps)
-    assert(message2.battery.motorCurrentAmps == battery_event_motorCurrentAmps)
+    assertAlmostEqual(message2.battery.currentAmp,
+                      battery_event_currentAmp)
 
 
 def test_server_robot_state_2():
@@ -273,7 +279,7 @@ def test_server_robot_state_2():
     us_event = message.ultrasound
 
     us_event_timestamp = 1416757956
-    us_event_ultrasound = float("Infinity")
+    us_event_ultrasound = 123456
     us_event.timestamp = us_event_timestamp
     us_event.ultrasound = us_event_ultrasound
 
@@ -343,6 +349,7 @@ def main():
     test_start()
     test_stop()
     test_registered()
+    test_player_state()
     # server-web
     test_get_access()
     test_get_game_state()
