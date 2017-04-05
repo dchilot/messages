@@ -420,7 +420,10 @@ class Capture{name}(yaml.YAMLObject, Capture):
     return output
 
 
-# use to generator the code with cog
+# use to generate the code with cog
+# cog.py -r orwell/yaml2protobuf.py
+# You may have to remove some classes before generating (you can remove
+# all of them as they will be generated again).
 COG_GENERATOR = """ [[[cog
 import os
 import sys
@@ -457,18 +460,6 @@ class CaptureInput(yaml.YAMLObject, Capture):
     PROTOBUF_CLASS = orwell.messages.controller_pb2.Input
     yaml_tag = u'!CaptureInput'
     message_type = 'Input'
-
-
-class Battery(yaml.YAMLObject, Base):
-    __metaclass__ = CustomMetaClass
-    PROTOBUF_CLASS = orwell.messages.robot_pb2.Battery
-    yaml_tag = u'!Battery'
-
-
-class CaptureBattery(yaml.YAMLObject, Capture):
-    PROTOBUF_CLASS = orwell.messages.robot_pb2.Battery
-    yaml_tag = u'!CaptureBattery'
-    message_type = 'Battery'
 
 
 class Colour(yaml.YAMLObject, Base):
@@ -519,18 +510,6 @@ class CaptureServerRobotState(yaml.YAMLObject, Capture):
     message_type = 'ServerRobotState'
 
 
-class Ultrasound(yaml.YAMLObject, Base):
-    __metaclass__ = CustomMetaClass
-    PROTOBUF_CLASS = orwell.messages.robot_pb2.Ultrasound
-    yaml_tag = u'!Ultrasound'
-
-
-class CaptureUltrasound(yaml.YAMLObject, Capture):
-    PROTOBUF_CLASS = orwell.messages.robot_pb2.Ultrasound
-    yaml_tag = u'!CaptureUltrasound'
-    message_type = 'Ultrasound'
-
-
 class Access(yaml.YAMLObject, Base):
     __metaclass__ = CustomMetaClass
     PROTOBUF_CLASS = orwell.messages.server_game_pb2.Access
@@ -541,6 +520,18 @@ class CaptureAccess(yaml.YAMLObject, Capture):
     PROTOBUF_CLASS = orwell.messages.server_game_pb2.Access
     yaml_tag = u'!CaptureAccess'
     message_type = 'Access'
+
+
+class Battery(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.common_pb2.Battery
+    yaml_tag = u'!Battery'
+
+
+class CaptureBattery(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = orwell.messages.common_pb2.Battery
+    yaml_tag = u'!CaptureBattery'
+    message_type = 'Battery'
 
 
 class Coordinates(yaml.YAMLObject, Base):
@@ -673,6 +664,18 @@ class CaptureTeam(yaml.YAMLObject, Capture):
     PROTOBUF_CLASS = orwell.messages.server_game_pb2.Team
     yaml_tag = u'!CaptureTeam'
     message_type = 'Team'
+
+
+class Ultrasound(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.common_pb2.Ultrasound
+    yaml_tag = u'!Ultrasound'
+
+
+class CaptureUltrasound(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = orwell.messages.common_pb2.Ultrasound
+    yaml_tag = u'!CaptureUltrasound'
+    message_type = 'Ultrasound'
 
 
 class Welcome(yaml.YAMLObject, Base):
