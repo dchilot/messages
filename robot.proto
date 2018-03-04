@@ -38,7 +38,7 @@ message Register {
 	// we do not know yet what ID the server will assign to the robot
 	required string temporary_robot_id = 1;
 	// a valid url the is streaming what the robot sees
-	required string video_url = 2;
+	optional string video_url = 2;
 	// an image of the robot to be able to identify it with image
 	// analysis (when available ...)
 	required string image = 3;
