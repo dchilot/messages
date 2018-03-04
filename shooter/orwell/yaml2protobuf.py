@@ -438,6 +438,18 @@ cog.outl(generate())
 # ]]] """
 
 
+class Fire(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.controller_pb2.Fire
+    yaml_tag = u'!Fire'
+
+
+class CaptureFire(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = orwell.messages.controller_pb2.Fire
+    yaml_tag = u'!CaptureFire'
+    message_type = 'Fire'
+
+
 class Hello(yaml.YAMLObject, Base):
     __metaclass__ = CustomMetaClass
     PROTOBUF_CLASS = orwell.messages.controller_pb2.Hello
@@ -460,6 +472,18 @@ class CaptureInput(yaml.YAMLObject, Capture):
     PROTOBUF_CLASS = orwell.messages.controller_pb2.Input
     yaml_tag = u'!CaptureInput'
     message_type = 'Input'
+
+
+class Move(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.controller_pb2.Move
+    yaml_tag = u'!Move'
+
+
+class CaptureMove(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = orwell.messages.controller_pb2.Move
+    yaml_tag = u'!CaptureMove'
+    message_type = 'Move'
 
 
 class Colour(yaml.YAMLObject, Base):
