@@ -194,6 +194,9 @@ class In(yaml.YAMLObject, Exchange):
         if (zmq_message):
             print("received zmq message %s" % repr(zmq_message))
             message = yaml2protobuf.Capture.create_from_zmq(zmq_message)
+            self.message.destination = message.destination
+            # print("type(self.message) = " + str(type(self.message)))
+            # print("id(self.message) = " + str(hex(id(self.message))))
             self.message.compute_differences(message)
             self._repository.add_received_message(self.message)
         return zmq_message, zmq_message is not None
@@ -265,7 +268,7 @@ class CaptureConverter(object):
     received messages.
     """
 
-    def __init__(self, capture_list):
+    def __init__(self, capture_list, destination=None):
         self._values = {}
         print("capture_list")
         print(capture_list)
@@ -277,12 +280,17 @@ class CaptureConverter(object):
                     # @TODO: possibly clear the object
                     pass
                 self._values[key] = value
+        if (destination is not None):
+            self.destination = destination
 
     def __getattribute__(self, attribute):
         values = object.__getattribute__(self, "_values")
+        # print("values = " + str(values))
         if (attribute in values):
             return values[attribute]
         else:
+            # print("type(self) = " + str(type(self)))
+            # print("id(self) = " + str(hex(id(self))))
             return object.__getattribute__(self, attribute)
 
 
@@ -299,13 +307,16 @@ class CaptureRepository(object):
 
     def add_received_message(self, message):
         # message is of type CaptureXXX
-        capture_converter = CaptureConverter(message.captured)
+        # print("CaptureRepository::add_received_message(" + str(type(message)) + "@" + str(hex(id(message)))) + ")"
+        capture_converter = CaptureConverter(message.captured, message.destination)
+        # print("capture_converter = " + str(capture_converter))
         self._values_from_received_messages[message.message_type].append(
             capture_converter)
 
     def expand(self, string):
         # print("string = '" + repr(string) + "'")
         # print("type(string) = '" + str(type(string)) + "'")
+        # print("__dict__ = " + str(self.__dict__))
         if ((isinstance(string, str)) and
                 (CaptureRepository.eval_regexp.match(string))):
             string_without_brackets = string[1:-1]

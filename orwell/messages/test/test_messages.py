@@ -48,7 +48,7 @@ def test_game_state():
     assert(message2 == message)
 
 
-def test_welcome(use_optional):
+def _test_welcome(use_optional=False):
     message = pb_server_game.Welcome()
     robot = "TANK_1"
     team = "team_blue"
@@ -344,8 +344,8 @@ def main():
     # server-game
     test_team()
     test_game_state()
-    test_welcome(use_optional=True)
-    test_welcome(use_optional=False)
+    _test_welcome(use_optional=True)
+    _test_welcome(use_optional=False)
     test_access()
     test_start()
     test_stop()

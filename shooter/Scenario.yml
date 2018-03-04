@@ -29,6 +29,12 @@ messages:
                 - timestamp: 4142434445
                   status: "{status}"
                   colour: "{colour}"
+            ultrasound:
+                timestamp: 4142434445
+                distance: "{distance}"
+            battery:
+                timestamp: 4142434445
+                voltage_millivolt: "{voltage}"
 
 sockets:
     - !SocketSubscribe &subscribe_socket
@@ -69,12 +75,16 @@ threads:
                     true_id: "{Registered[-1].true_id}"
                     status: 1
                     colour: 1 # frontier
+                    distance: 120
+                    voltage: 8200
             - !Out
                 message: *robot_state
                 arguments:
                     true_id: "{Registered[-1].true_id}"
                     status: 1
                     colour: 3 # blue
+                    distance: 120
+                    voltage: 8200
             - !Sleep
                 seconds: 1
             - !Out
@@ -83,6 +93,8 @@ threads:
                     true_id: "{Registered[-1].true_id}"
                     status: 1
                     colour: 1 # frontier
+                    distance: 120
+                    voltage: 8200
             - !UserInput
                 text: "About to send ServerRobotState messages (with successful capture)"
             - !Sleep
@@ -93,3 +105,15 @@ threads:
                     true_id: "{Registered[-1].true_id}"
                     status: 1
                     colour: 3 # blue
+                    distance: 120
+                    voltage: 8200
+            - !Sleep
+                seconds: 3
+            - !Out
+                message: *robot_state
+                arguments:
+                    true_id: "{Registered[-1].true_id}"
+                    status: 1
+                    colour: 1 # frontier
+                    distance: 80
+                    voltage: 8200
