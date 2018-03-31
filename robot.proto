@@ -18,14 +18,14 @@ enum Status {
 
 // Robot is detecting a Colour flag
 message Colour {
-	required int64 timestamp = 1;
+	required uint64 timestamp = 1;
 	required Status status = 2;
 	required int32 colour = 3;
 }
 
 // Robot is detecting a RFID flag
 message Rfid {
-	required int64 timestamp = 1;
+	required uint64 timestamp = 1;
 	required Status status = 2;
 	required string rfid = 3;
 }
@@ -44,3 +44,7 @@ message Register {
 	required string image = 3;
 }
 
+// Reply to a ping message to mesure timings
+message Pong {
+	repeated Timing timing = 1;
+}

@@ -486,6 +486,18 @@ class CaptureMove(yaml.YAMLObject, Capture):
     message_type = 'Move'
 
 
+class Ping(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.controller_pb2.Ping
+    yaml_tag = u'!Ping'
+
+
+class CapturePing(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = orwell.messages.controller_pb2.Ping
+    yaml_tag = u'!CapturePing'
+    message_type = 'Ping'
+
+
 class Colour(yaml.YAMLObject, Base):
     __metaclass__ = CustomMetaClass
     PROTOBUF_CLASS = orwell.messages.robot_pb2.Colour
@@ -496,6 +508,18 @@ class CaptureColour(yaml.YAMLObject, Capture):
     PROTOBUF_CLASS = orwell.messages.robot_pb2.Colour
     yaml_tag = u'!CaptureColour'
     message_type = 'Colour'
+
+
+class Pong(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.robot_pb2.Pong
+    yaml_tag = u'!Pong'
+
+
+class CapturePong(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = orwell.messages.robot_pb2.Pong
+    yaml_tag = u'!CapturePong'
+    message_type = 'Pong'
 
 
 class Register(yaml.YAMLObject, Base):
@@ -688,6 +712,18 @@ class CaptureTeam(yaml.YAMLObject, Capture):
     PROTOBUF_CLASS = orwell.messages.server_game_pb2.Team
     yaml_tag = u'!CaptureTeam'
     message_type = 'Team'
+
+
+class Timing(yaml.YAMLObject, Base):
+    __metaclass__ = CustomMetaClass
+    PROTOBUF_CLASS = orwell.messages.common_pb2.Timing
+    yaml_tag = u'!Timing'
+
+
+class CaptureTiming(yaml.YAMLObject, Capture):
+    PROTOBUF_CLASS = orwell.messages.common_pb2.Timing
+    yaml_tag = u'!CaptureTiming'
+    message_type = 'Timing'
 
 
 class Ultrasound(yaml.YAMLObject, Base):
