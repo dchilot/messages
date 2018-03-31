@@ -194,11 +194,14 @@ class In(yaml.YAMLObject, Exchange):
         if (zmq_message):
             print("received zmq message %s" % repr(zmq_message))
             message = yaml2protobuf.Capture.create_from_zmq(zmq_message)
-            self.message.destination = message.destination
-            # print("type(self.message) = " + str(type(self.message)))
-            # print("id(self.message) = " + str(hex(id(self.message))))
-            self.message.compute_differences(message)
-            self._repository.add_received_message(self.message)
+            if (message.message_type != self.message.message_type):
+                zmq_message = None
+            else:
+                self.message.destination = message.destination
+                # print("type(self.message) = " + str(type(self.message)))
+                # print("id(self.message) = " + str(hex(id(self.message))))
+                self.message.compute_differences(message)
+                self._repository.add_received_message(self.message)
         return zmq_message, zmq_message is not None
 
 
@@ -314,8 +317,8 @@ class CaptureRepository(object):
             capture_converter)
 
     def expand(self, string):
-        # print("string = '" + repr(string) + "'")
-        # print("type(string) = '" + str(type(string)) + "'")
+        print("string = '" + repr(string) + "'")
+        print("type(string) = '" + str(type(string)) + "'")
         # print("__dict__ = " + str(self.__dict__))
         if ((isinstance(string, str)) and
                 (CaptureRepository.eval_regexp.match(string))):
@@ -323,8 +326,10 @@ class CaptureRepository(object):
             value = str(eval(
                 string_without_brackets,
                 self._values_from_received_messages))
+            print("expanded string to value='" + value + "'")
         else:
             value = string
+            print("copied string to value='" + value + "'")
         return value
 
 
@@ -353,7 +358,7 @@ class Thread(yaml.YAMLObject):
                   "index = {index} ; result = {result} ; inc = {inc}".format(
                       name=self.name,
                       index=self.index,
-                      result=result,
+                      result=repr(result),
                       inc=inc))
             if (result is not None and not result):
                 error_message = "Failure at index {} in thread '{}'.".format(

@@ -108,6 +108,11 @@ class Base(object):
         return self._key_map
 
 
+
+from collections import namedtuple
+Comparison = namedtuple('Comparison', 'key reference_value compared')
+
+
 class Capture(object):
     def __new__(cls, *args, **kwargs):
         instance = object.__new__(cls, *args, **kwargs)
@@ -144,6 +149,7 @@ class Capture(object):
         capture._pb_message = pb_message
         capture.destination = destination
         capture.message = pb2dict(pb_message)
+        print("capture.message = " + str(capture.message))
         return capture
 
     @property
@@ -216,11 +222,34 @@ class Capture(object):
         if (self.destination != other.destination):
             differences.append(
                 ("@destination", self.destination, other.destination))
+
+        comparisons = []
         for key, reference_value in self.key_map.items():
+            comparison = Comparison(key, reference_value, other.key_map)
+            comparisons.append(comparison)
+
+        while (comparisons):
+            comparison = comparisons.pop(0)
+            key = comparison.key
+            reference_value = comparison.reference_value
+            compared = comparison.compared
+            print("compute_differences - key = '{key}', value = '{value}' ; compared = '{compared}'".format(key=key, value=reference_value, compared=compared))
             try:
-                other_value = other.key_map[key]
+                other_value = compared[key]
+                if (isinstance(reference_value, dict)):
+                    for sub_key, sub_value in reference_value.items():
+                        comparisons.append(
+                            Comparison(sub_key, sub_value, other_value))
+                    continue
+                elif (isinstance(reference_value, list)):
+                    for sub, sub_other in zip(reference_value, other_value):
+                        for sub_key, sub_value in sub.items():
+                            comparisons.append(
+                                Comparison(sub_key, sub_value, sub_other))
+                    continue
             except:
                 other_value = None
+            print("compute_differences - key = '{key}', value = '{value}' ; other.key_map[key] = '{other_value}'".format(key=key, value=reference_value, other_value=other_value))
             if (reference_value != other_value):
                 if ((isinstance(reference_value, str)) and
                         (Base.CAPTURE_PATTERN.match(reference_value))):
