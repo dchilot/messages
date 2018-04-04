@@ -20,6 +20,16 @@ messages:
             id: "{id}"
             video_address: "http://fake.com"
             video_port: "{video_port}"
+    - ping: !CapturePing &ping
+        destination: "{id}"
+        message:
+            timing: []
+    - pong: !CapturePong &pong
+        destination: "{id}"
+        message:
+            timing:
+                - logger: "{logger}"
+                  timestamp: "{timestamp}"
 
 sockets:
     - !SocketPull &pull_a
@@ -51,6 +61,18 @@ threads:
                 arguments:
                     id: '%welcome_id%'
                     video_port: 42
+            - !In
+                message: *ping
+            - !Absent
+                values:
+                    - "{Ping[-1]}"
+                    - "timing"
+            - !Out
+                message: *pong
+                arguments:
+                    id: '%welcome_id%'
+                    logger: '%logger%'
+                    timestamp: %timestamp%
     - !Thread
         name: "fake client"
         loop: False
@@ -71,6 +93,24 @@ threads:
                 values:
                     - "42"
                     - "{Welcome[-1].video_port}"
+            - !Out
+                message: *ping
+                arguments:
+                    id: '%welcome_id%'
+            - !In
+                message: *pong
+            - !Equal
+                values:
+                    - "%logger%"
+                    - "{Pong[-1].logger}"
+            - !Equal
+                values:
+                    - "%timestamp%"
+                    - "{Pong[-1].timestamp}"
+            - !Equal
+                values:
+                    - "%timestamp%"
+                    - "{Pong[-1].raw.timing[0].timestamp}"
 """
 
     @staticmethod
@@ -79,7 +119,9 @@ threads:
         correct_id = "123"
         yaml_content = ScenarioTest.yaml_content.replace(
             "%welcome_id%", correct_id).replace(
-                "%expected_welcome_id%", correct_id)
+                "%expected_welcome_id%", correct_id).replace(
+                    "%logger%", "logger").replace(
+                        "%timestamp%", "1234")
         with scen.Scenario(yaml_content) as scenario:
             sys.stderr.write("\n" + str(scenario._data) + "\n")
             scenario.build()
@@ -92,7 +134,9 @@ threads:
         wrong_id = "666"
         yaml_content = ScenarioTest.yaml_content.replace(
             "%welcome_id%", correct_id).replace(
-                "%expected_welcome_id%", wrong_id)
+                "%expected_welcome_id%", wrong_id).replace(
+                    "%logger%", "logger").replace(
+                        "%timestamp%", "1234")
         with scen.Scenario(yaml_content) as scenario:
             sys.stderr.write("\n" + str(scenario._data) + "\n")
             scenario.build()
@@ -120,7 +164,9 @@ threads:
         correct_id = "123"
         yaml_content = ScenarioTest.yaml_content.replace(
             "%welcome_id%", correct_id).replace(
-                "%expected_welcome_id%", correct_id)
+                "%expected_welcome_id%", correct_id).replace(
+                    "%logger%", "logger").replace(
+                        "%timestamp%", "1234")
         yaml_content = "\n".join(yaml_content.split("\n")[:-2])
         scenario = scen.Scenario(yaml_content)
         try:

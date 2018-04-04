@@ -198,6 +198,7 @@ class In(yaml.YAMLObject, Exchange):
                 zmq_message = None
             else:
                 self.message.destination = message.destination
+                self.message.raw = message._pb_message
                 # print("type(self.message) = " + str(type(self.message)))
                 # print("id(self.message) = " + str(hex(id(self.message))))
                 self.message.compute_differences(message)
@@ -263,6 +264,40 @@ class Equal(yaml.YAMLObject):
         return "{Equal | %s}" % str(self.values)
 
 
+class Absent(yaml.YAMLObject):
+    """To be used in YAML.
+
+    Class to assert that an object does not contain something.
+    """
+
+    yaml_tag = u'!Absent'
+
+    def build(self, repository, in_socket, out_socket):
+        self._repository = repository
+        values_count = len(self.values)
+        if (values_count < 2):
+            raise Exception(
+                "Only {} value(s) found but 2 expected.".format(values_count))
+
+    def step(self, *args):
+        print("Absent.step")
+        reference = None
+        absent = True
+        for value in self.values:
+            value = self._repository.expand(value)
+            if (reference is None):
+                reference = value
+            else:
+                if (value in reference):
+                    print("Absent not verified:", reference, value)
+                    absent = False
+                    break
+        return (absent, True)
+
+    def __repr__(self):
+        return "{Absent | %s}" % str(self.values)
+
+
 class CaptureConverter(object):
     """Converts the format of yaml2protobuf.CaptureXXX.captured.
 
@@ -271,8 +306,9 @@ class CaptureConverter(object):
     received messages.
     """
 
-    def __init__(self, capture_list, destination=None):
+    def __init__(self, capture_list, destination=None, raw=None):
         self._values = {}
+        self.raw = raw
         print("capture_list")
         print(capture_list)
         for dico in capture_list:
@@ -286,15 +322,11 @@ class CaptureConverter(object):
         if (destination is not None):
             self.destination = destination
 
-    def __getattribute__(self, attribute):
-        values = object.__getattribute__(self, "_values")
-        # print("values = " + str(values))
-        if (attribute in values):
-            return values[attribute]
+    def __getattr__(self, attribute):
+        if (attribute in self._values):
+            return self._values[attribute]
         else:
-            # print("type(self) = " + str(type(self)))
-            # print("id(self) = " + str(hex(id(self))))
-            return object.__getattribute__(self, attribute)
+            raise KeyError('Missing attribute: ' + attribute)
 
 
 class CaptureRepository(object):
@@ -311,7 +343,10 @@ class CaptureRepository(object):
     def add_received_message(self, message):
         # message is of type CaptureXXX
         # print("CaptureRepository::add_received_message(" + str(type(message)) + "@" + str(hex(id(message)))) + ")"
-        capture_converter = CaptureConverter(message.captured, message.destination)
+        capture_converter = CaptureConverter(
+                message.captured,
+                message.destination,
+                message.raw)
         # print("capture_converter = " + str(capture_converter))
         self._values_from_received_messages[message.message_type].append(
             capture_converter)
@@ -323,6 +358,7 @@ class CaptureRepository(object):
         if ((isinstance(string, str)) and
                 (CaptureRepository.eval_regexp.match(string))):
             string_without_brackets = string[1:-1]
+            print("string_without_brackets = '" + string_without_brackets + "'")
             value = str(eval(
                 string_without_brackets,
                 self._values_from_received_messages))
