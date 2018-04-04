@@ -4,6 +4,7 @@ import zmq
 import collections
 import re
 import time
+import logging
 
 
 class Socket(object):
@@ -35,15 +36,18 @@ class Socket(object):
             return "subsccribe"
 
     def build(self, zmq_context):
+        logger = logging.getLogger(__name__)
         bind = getattr(self, 'bind', False)
         self.bind = bind
         self._zmq_socket = zmq_context.socket(self.zmq_method)
         self._zmq_socket.setsockopt(zmq.LINGER, 1)
         if (bind):
-            print "Bind on " + self.connection_string + " " + self.mode
+            logger.info(
+                "Bind on " + self.connection_string + " " + self.mode)
             self._zmq_socket.bind(self.connection_string)
         else:
-            print "Connect to " + self.connection_string + " " + self.mode
+            logger.info(
+                "Connect to " + self.connection_string + " " + self.mode)
             self._zmq_socket.connect(self.connection_string)
 
     def __repr__(self):
@@ -85,7 +89,8 @@ class SocketPush(yaml.YAMLObject, Socket):
     zmq_method = zmq.PUSH
 
     def send(self, data):
-        print("SocketPush.send({})".format(repr(data)))
+        logger = logging.getLogger(__name__)
+        logger.info("SocketPush.send({})".format(repr(data)))
         self._zmq_socket.send(data)
 
 
@@ -104,7 +109,8 @@ class SocketSubscribe(yaml.YAMLObject, Socket):
 
     def recv(self, *args, **kwargs):
         event = self._zmq_socket.poll(10)
-        print "event =", event
+        logger = logging.getLogger(__name__)
+        logger.debug("event = " + str(event))
         if (zmq.POLLIN == event):
             return self._zmq_socket.recv(*args, **kwargs)
         else:
@@ -121,7 +127,8 @@ class SocketPublish(yaml.YAMLObject, Socket):
     zmq_method = zmq.PUB
 
     def send(self, data):
-        print("SocketPublish.send({})".format(repr(data)))
+        logger = logging.getLogger(__name__)
+        logger.info("SocketPublish.send({})".format(repr(data)))
         self._zmq_socket.send(data)
 
 
@@ -185,14 +192,15 @@ class In(yaml.YAMLObject, Exchange):
     yaml_tag = u'!In'
 
     def step(self):
-        print("In.step")
+        logger = logging.getLogger(__name__)
+        logger.info("In.step")
         try:
             zmq_message = self._in_socket.recv()
         except Exception as ex:
-            print("Exception in In.step:" + str(ex))
+            logger.warning("Exception in In.step:" + str(ex))
             zmq_message = None
         if (zmq_message):
-            print("received zmq message %s" % repr(zmq_message))
+            logger.debug("received zmq message %s" % repr(zmq_message))
             message = yaml2protobuf.Capture.create_from_zmq(zmq_message)
             if (message.message_type != self.message.message_type):
                 zmq_message = None
@@ -220,11 +228,12 @@ class Out(yaml.YAMLObject, Exchange):
         super(self.__class__, self).build(repository, in_socket, out_socket)
 
     def step(self):
-        print("Out.step")
-        print("arguments = " + str(self.arguments))
+        logger = logging.getLogger(__name__)
+        logger.info("Out.step")
+        logger.debug("arguments = " + str(self.arguments))
         expanded_arguments = {key: self._repository.expand(value)
                               for key, value in self.arguments.items()}
-        print("expanded arguments = " + str(expanded_arguments))
+        logger.debug("expanded arguments = " + str(expanded_arguments))
         self._out_socket.send(
             self.message.encode_zmq_message(expanded_arguments))
         return None, True
@@ -246,7 +255,8 @@ class Equal(yaml.YAMLObject):
                 "Only {} value(s) found but 2 expected.".format(values_count))
 
     def step(self, *args):
-        print("Equal.step")
+        logger = logging.getLogger(__name__)
+        logger.info("Equal.step")
         reference = None
         all_equal = True
         for value in self.values:
@@ -255,7 +265,8 @@ class Equal(yaml.YAMLObject):
                 reference = value
             else:
                 if (reference != value):
-                    print("Values differ:", reference, value)
+                    logger.warning(
+                        "Values differ: " + str(reference) + " " + str(value))
                     all_equal = False
                     break
         return (all_equal, True)
@@ -280,7 +291,8 @@ class Absent(yaml.YAMLObject):
                 "Only {} value(s) found but 2 expected.".format(values_count))
 
     def step(self, *args):
-        print("Absent.step")
+        logger = logging.getLogger(__name__)
+        logger.info("Absent.step")
         reference = None
         absent = True
         for value in self.values:
@@ -289,7 +301,7 @@ class Absent(yaml.YAMLObject):
                 reference = value
             else:
                 if (value in reference):
-                    print("Absent not verified:", reference, value)
+                    logger.warning("Absent not verified:", reference, value)
                     absent = False
                     break
         return (absent, True)
@@ -309,8 +321,9 @@ class CaptureConverter(object):
     def __init__(self, capture_list, destination=None, raw=None):
         self._values = {}
         self.raw = raw
-        print("capture_list")
-        print(capture_list)
+        logger = logging.getLogger(__name__)
+        logger.debug("capture_list")
+        logger.debug(capture_list)
         for dico in capture_list:
             for key, value in dico.items():
                 if (key in self._values):
@@ -326,7 +339,8 @@ class CaptureConverter(object):
         if (attribute in self._values):
             return self._values[attribute]
         else:
-            raise KeyError('Missing attribute: ' + attribute)
+            raise AttributeError(
+                "'CaptureConverter' object has no attribute '%s'" % attribute)
 
 
 class CaptureRepository(object):
@@ -352,20 +366,21 @@ class CaptureRepository(object):
             capture_converter)
 
     def expand(self, string):
-        print("string = '" + repr(string) + "'")
-        print("type(string) = '" + str(type(string)) + "'")
-        # print("__dict__ = " + str(self.__dict__))
+        logger = logging.getLogger(__name__)
+        logger.debug("string = '" + repr(string) + "'")
+        logger.debug("type(string) = '" + str(type(string)) + "'")
         if ((isinstance(string, str)) and
                 (CaptureRepository.eval_regexp.match(string))):
             string_without_brackets = string[1:-1]
-            print("string_without_brackets = '" + string_without_brackets + "'")
+            logger.debug(
+                "string_without_brackets = '" + string_without_brackets + "'")
             value = str(eval(
                 string_without_brackets,
                 self._values_from_received_messages))
-            print("expanded string to value='" + value + "'")
+            logger.debug("expanded string to value='" + value + "'")
         else:
             value = string
-            print("copied string to value='" + str(value) + "'")
+            logger.debug("copied string to value='" + str(value) + "'")
         return value
 
 
@@ -387,10 +402,11 @@ class Thread(yaml.YAMLObject):
             self.index = 0
 
     def step(self):
+        logger = logging.getLogger(__name__)
         if (self.has_more_steps):
-            print("In thread '{name}'".format(name=self.name))
+            logger.info("In thread '{name}'".format(name=self.name))
             result, inc = self.flow[self.index].step()
-            print("In thread '{name}': "
+            logger.debug("In thread '{name}': "
                   "index = {index} ; result = {result} ; inc = {inc}".format(
                       name=self.name,
                       index=self.index,
@@ -405,7 +421,7 @@ class Thread(yaml.YAMLObject):
                 if (self.loop):
                     self.index %= len(self.flow)
         else:
-            print("Skipped thread '{name}'".format(name=self.name))
+            logger.info("Skipped thread '{name}'".format(name=self.name))
 
     @property
     def has_more_steps(self):
@@ -478,7 +494,8 @@ class Sleep(yaml.YAMLObject):
         pass
 
     def step(self, *args):
-        print("Sleep.step")
+        logger = logging.getLogger(__name__)
+        logger.info("Sleep.step")
         time.sleep(self.seconds)
         return (None, True)
 
@@ -498,7 +515,8 @@ class UserInput(yaml.YAMLObject):
         pass
 
     def step(self, *args):
-        print("UserInput.step")
+        logger = logging.getLogger(__name__)
+        logger.info("UserInput.step")
         raw_input(self.text)
         return (None, True)
 

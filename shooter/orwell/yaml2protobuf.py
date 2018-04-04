@@ -1,6 +1,7 @@
 import re
 import sys
 import inspect
+import logging
 
 import yaml
 from pbjson.pbjson import pb2dict
@@ -149,7 +150,8 @@ class Capture(object):
         capture._pb_message = pb_message
         capture.destination = destination
         capture.message = pb2dict(pb_message)
-        print("capture.message = " + str(capture.message))
+        logger = logging.getLogger(__name__)
+        logger.debug("capture.message = " + str(capture.message))
         return capture
 
     @property
@@ -228,12 +230,17 @@ class Capture(object):
             comparison = Comparison(key, reference_value, other.key_map)
             comparisons.append(comparison)
 
+        logger = logging.getLogger(__name__)
         while (comparisons):
             comparison = comparisons.pop(0)
             key = comparison.key
             reference_value = comparison.reference_value
             compared = comparison.compared
-            print("compute_differences - key = '{key}', value = '{value}' ; compared = '{compared}'".format(key=key, value=reference_value, compared=compared))
+            logger.debug(
+                "compute_differences - key = '{key}'"
+                ", value = '{value}' "
+                "; compared = '{compared}'".format(
+                    key=key, value=reference_value, compared=compared))
             try:
                 other_value = compared[key]
                 if (isinstance(reference_value, dict)):
@@ -249,7 +256,13 @@ class Capture(object):
                     continue
             except:
                 other_value = None
-            print("compute_differences - key = '{key}', value = '{value}' ; other.key_map[key] = '{other_value}'".format(key=key, value=reference_value, other_value=other_value))
+            logger.debug(
+                    "compute_differences - key = '{key}'"
+                    ", value = '{value}' "
+                    "; other.key_map[key] = '{other_value}'".format(
+                        key=key,
+                        value=reference_value,
+                        other_value=other_value))
             if (reference_value != other_value):
                 if ((isinstance(reference_value, str)) and
                         (Base.CAPTURE_PATTERN.match(reference_value))):
@@ -258,10 +271,10 @@ class Capture(object):
                 else:
                     differences.append((key, reference_value, other_value))
         self.captured.append(captured)
-        print("self")
-        print(self)
-        print("self.captured")
-        print(self.captured)
+        logger.debug("self")
+        logger.debug(self)
+        logger.debug("self.captured")
+        logger.debug(self.captured)
         return differences
 
     def _compute_bool(self, value):
@@ -394,7 +407,8 @@ class Capture(object):
 
     def fill(self, dico):
         expanded_dico = {}
-        sys.stderr.write("++ self.message %s\n" % (self.message))
+        logger = logging.getLogger(__name__)
+        logger.debug("++ self.message %s\n" % (self.message))
         self._fill(
             dico,
             self.message,

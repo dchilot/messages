@@ -137,6 +137,7 @@ threads:
                 "%expected_welcome_id%", wrong_id).replace(
                     "%logger%", "logger").replace(
                         "%timestamp%", "1234")
+        thrown = False
         with scen.Scenario(yaml_content) as scenario:
             sys.stderr.write("\n" + str(scenario._data) + "\n")
             scenario.build()
@@ -147,15 +148,15 @@ threads:
                 # make sure we move to the step receiving the message
                 for i in range(50):
                     scenario.step()
-                thrown = False
                 sys.stdout.write("No exception raised.\n")
-            except Exception as expected_exception:
-                thrown = (
-                    ("Failure at index 2 in thread 'fake client'.",)
-                    == expected_exception.args)
+            except Exception as received_exception:
+                expected = ("Failure at index 2 in thread 'fake client'.",)
+                thrown = (expected == received_exception.args)
                 if (not thrown):
                     sys.stdout.write("Exception different from expectation.\n")
-                print(expected_exception)
+                    print("Received:", received_exception)
+                else:
+                    sys.stdout.write("Exception matched.\n")
         assert(thrown)
 
     @staticmethod
@@ -182,10 +183,11 @@ threads:
 
 
 class FakeMessage(object):
-    def __init__(self, message_type, captured, destination):
+    def __init__(self, message_type, captured, destination, raw=None):
         self.message_type = message_type
         self.captured = captured
         self.destination = destination
+        self.raw = raw
 
 
 class CaptureRepositoryTest(unittest.TestCase):
@@ -225,10 +227,10 @@ class CaptureRepositoryTest(unittest.TestCase):
 
 
 def main():
-    ScenarioTest.test_1()
-    # ScenarioTest.test_2()
+    # ScenarioTest.test_1()
+    ScenarioTest.test_2()
     #ScenarioTest.test_3()
-    #CaptureRepositoryTest.test_1()
+    # CaptureRepositoryTest.test_1()
 
 if ("__main__" == __name__):
     main()

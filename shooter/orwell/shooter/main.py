@@ -7,10 +7,6 @@ import orwell.shooter.scenario as scen
 
 
 def main(argv=sys.argv[1:]):
-    log = logging.getLogger(__name__)
-    handler = logging.StreamHandler()
-    log.addHandler(handler)
-    log.setLevel(logging.DEBUG)
     parser = argparse.ArgumentParser(description='Scenario shooter.')
     parser.add_argument('scenario_file', help='YAML scenario file.')
     parser.add_argument(
@@ -20,7 +16,19 @@ def main(argv=sys.argv[1:]):
         action="store",
         metavar="DELAY",
         type=int)
+    parser.add_argument(
+        '--verbose', '-v',
+        help='Verbose mode',
+        default=False,
+        action="store_true")
     arguments = parser.parse_args()
+    log = logging.getLogger(__name__)
+    handler = logging.StreamHandler()
+    log.addHandler(handler)
+    if (arguments.verbose):
+        log.setLevel(logging.DEBUG)
+    else:
+        log.setLevel(logging.INFO)
     scenario_file = arguments.scenario_file
     delay = arguments.delay
     log.debug('Open file "{}" as YAML scenario.'.format(scenario_file))
