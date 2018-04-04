@@ -329,7 +329,7 @@ class CaptureRepository(object):
             print("expanded string to value='" + value + "'")
         else:
             value = string
-            print("copied string to value='" + value + "'")
+            print("copied string to value='" + str(value) + "'")
         return value
 
 

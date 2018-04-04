@@ -136,9 +136,10 @@ threads:
 
 
 class FakeMessage(object):
-    def __init__(self, message_type, captured):
+    def __init__(self, message_type, captured, destination):
         self.message_type = message_type
         self.captured = captured
+        self.destination = destination
 
 
 class CaptureRepositoryTest(unittest.TestCase):
@@ -161,11 +162,12 @@ class CaptureRepositoryTest(unittest.TestCase):
         name = "NONO"
         identifier = "ID42"
         repo = scen.CaptureRepository()
-        repo.add_received_message(FakeMessage("Register", [{"name": name}]))
+        repo.add_received_message(
+                FakeMessage("Register", [{"name": name}], "dest"))
         CaptureRepositoryTest._check(repo, "{Register[-1].name}", name)
         CaptureRepositoryTest._check(repo, "{Register[0].name}", name)
         repo.add_received_message(
-            FakeMessage("Register", [{"identifier": identifier}]))
+            FakeMessage("Register", [{"identifier": identifier}], "dest"))
         CaptureRepositoryTest._check(
             repo, "{Register[-1].name}",
             AttributeError(
